@@ -1,0 +1,26 @@
+[package]
+name = "peripheral-forensic-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+peripheral-core = { path = "../core" }
+peripheral-forensic = { path = "../forensic" }
+
+[[bin]]
+name = "setupapi"
+path = "fuzz_targets/setupapi.rs"
+test = false
+doc = false
+[[bin]]
+name = "forensic"
+path = "fuzz_targets/forensic.rs"
+test = false
+doc = false
+
+[workspace]

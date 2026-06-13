@@ -1,0 +1,33 @@
+[Device Install Log]
+     OS Version = 10.0.19045
+     Service Pack = 0.0
+     Suite = 0x0100
+     ProductType = 1
+     Architecture = amd64
+
+[BeginLog]
+
+[Boot Session: 2023/04/15 09:00:01.105]
+
+>>>  [Device Install (Hardware initiated) - USB\VID_0781&PID_5583\4C530001234567890123 2023/04/15 14:23:11.456]
+>>>  Section start 2023/04/15 14:23:11.460
+      cmd: C:\Windows\system32\svchost.exe
+     dvi: {Build Driver List} 14:23:11.470
+     dvi: {Build Driver List - exit(0x00000000)} 14:23:11.510
+<<<  Section end 2023/04/15 14:23:12.001
+
+>>>  [Device Install (Hardware initiated) - USBSTOR\Disk&Ven_SanDisk&Prod_Cruzer&Rev_1.00\4C530001234567890123&0 2023/04/15 14:23:12.330]
+>>>  Section start 2023/04/15 14:23:12.331
+<<<  Section end 2023/04/15 14:23:13.002
+
+>>>  [Device Install (Hardware initiated) - 1394\SONY&DV_CAMERA\0123ABCD45670000 2023/04/16 08:11:05.220]
+>>>  Section start 2023/04/16 08:11:05.221
+<<<  Section end 2023/04/16 08:11:06.000
+
+>>>  [Device Install (Hardware initiated) - HID\VID_046D&PID_C52B&MI_00\7&12a3b4c5&0&0000 2023/04/17 19:42:00.500]
+>>>  Section start 2023/04/17 19:42:00.501
+<<<  Section end 2023/04/17 19:42:01.000
+
+>>>  [Device Install (Hardware initiated) - PCI\VEN_8086&DEV_15D8&SUBSYS_00008086&REV_21\3&11583659&0&FE 2023/04/18 06:00:00.000]
+>>>  Section start 2023/04/18 06:00:00.001
+<<<  Section end 2023/04/18 06:00:01.000

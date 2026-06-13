@@ -1,0 +1,6 @@
+/target
+Cargo.lock
+/tests/data/*
+!/tests/data/README.md
+!/tests/data/setupapi.dev.log
+!/tests/data/setupapi_xp.log

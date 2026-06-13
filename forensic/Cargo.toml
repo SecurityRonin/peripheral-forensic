@@ -1,0 +1,22 @@
+[package]
+name = "peripheral-forensic"
+version = "0.1.0"
+description = "Forensic anomaly auditor for external-device connections — DMA-capable devices, mass-storage, HID/BadUSB, and OS-generated serials as graded report::Finding, built on peripheral-core"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository = "https://github.com/SecurityRonin/peripheral-forensic"
+homepage = "https://github.com/SecurityRonin/peripheral-forensic"
+documentation = "https://docs.rs/peripheral-forensic"
+readme = "README.md"
+keywords = ["forensics", "usb", "dfir", "incident-response", "peripheral"]
+categories = ["parser-implementations", "command-line-utilities"]
+exclude = ["/fuzz", "/.github", "/docs"]
+
+[dependencies]
+peripheral-core = { version = "0.1", path = "../core" }
+forensicnomicon = "0.4"
+
+[lints]
+workspace = true
