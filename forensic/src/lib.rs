@@ -7,8 +7,6 @@
 //! are narrated as consistency, never as a verdict.
 
 #![forbid(unsafe_code)]
-// RED commit: is_hid is wired up by the GREEN `audit`.
-#![allow(dead_code)]
 
 use forensicnomicon::report::{Category, Finding, Observation, Severity, Source};
 use peripheral_core::{Bus, DeviceConnection};
@@ -113,10 +111,27 @@ impl Observation for DeviceAnomaly {
 
 /// Audit a slice of [`DeviceConnection`]s into a typed [`DeviceAnomaly`] stream.
 #[must_use]
-pub fn audit(_devices: &[DeviceConnection]) -> Vec<DeviceAnomaly> {
-    // RED stub — the real DMA / mass-storage / HID / OS-serial detection lands
-    // in the GREEN commit.
-    Vec::new()
+pub fn audit(devices: &[DeviceConnection]) -> Vec<DeviceAnomaly> {
+    let mut out = Vec::new();
+    for d in devices {
+        let id = || d.device_instance_id.clone();
+        if d.dma_capable {
+            out.push(DeviceAnomaly::DmaCapableDevice {
+                instance_id: id(),
+                bus: d.bus,
+            });
+        }
+        if d.bus.is_mass_storage() {
+            out.push(DeviceAnomaly::MassStorageConnected { instance_id: id() });
+        }
+        if is_hid(d) {
+            out.push(DeviceAnomaly::HidDevice { instance_id: id() });
+        }
+        if d.serial_is_os_generated {
+            out.push(DeviceAnomaly::OsGeneratedSerial { instance_id: id() });
+        }
+    }
+    out
 }
 
 /// Convenience: audit and convert directly to graded [`Finding`]s.
