@@ -1,5 +1,9 @@
 /target
 Cargo.lock
+/fuzz/target
+/fuzz/corpus
+/fuzz/artifacts
+/fuzz/Cargo.lock
 /tests/data/*
 !/tests/data/README.md
 !/tests/data/setupapi.dev.log
