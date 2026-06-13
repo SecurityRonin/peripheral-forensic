@@ -61,9 +61,22 @@ impl Bus {
     /// Returns [`Bus::Unknown`] for an unrecognized or empty enumerator; the
     /// caller never gets a panic.
     #[must_use]
-    pub fn from_enumerator(_enumerator: &str) -> Self {
-        // RED stub — real classifier lands in GREEN.
-        Self::Unknown
+    pub fn from_enumerator(enumerator: &str) -> Self {
+        let e = enumerator.trim().to_ascii_uppercase();
+        match e.as_str() {
+            "USBSTOR" | "USB" => Self::Usb,
+            "1394" => Self::FireWire,
+            "THUNDERBOLT" => Self::Thunderbolt,
+            "PCI" | "PCIE" => Self::Pcie,
+            "SCSI" | "SAS" => Self::ScsiSas,
+            "NVME" => Self::Nvme,
+            "SD" | "MMC" | "SDBUS" => Self::SdMmc,
+            "ESATA" => Self::Esata,
+            "BTHENUM" | "BTHLE" | "BLUETOOTH" => Self::Bluetooth,
+            "EXPRESSCARD" => Self::ExpressCard,
+            "WPDBUSENUMROOT" | "MTP" => Self::Mtp,
+            _ => Self::Unknown,
+        }
     }
 
     /// Whether this bus can perform **bus-mastering DMA**, the property that
@@ -79,14 +92,20 @@ impl Bus {
     /// registry/EVTX v0.2 source carries.
     #[must_use]
     pub fn is_dma_capable(self) -> bool {
-        false // RED stub
+        matches!(
+            self,
+            Self::FireWire | Self::Thunderbolt | Self::Pcie | Self::ExpressCard
+        )
     }
 
     /// Whether this bus is a removable mass-storage transport (the
     /// data-exfiltration / autorun lens, MITRE T1052.001 / T1091).
     #[must_use]
     pub fn is_mass_storage(self) -> bool {
-        false // RED stub
+        matches!(
+            self,
+            Self::Usb | Self::Esata | Self::SdMmc | Self::ScsiSas | Self::Nvme
+        )
     }
 }
 

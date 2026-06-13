@@ -16,9 +16,6 @@
 //!
 //! Lines that match neither grammar are skipped; the parser never panics.
 
-// RED commit: the helpers below are wired up by the GREEN `parse_setupapi`.
-#![allow(dead_code)]
-
 use crate::{Bus, DeviceConnection, MitreRef, Provenance, Stamp};
 
 /// `MITRE` techniques narrated as *consistent with*, attached to a connection
@@ -32,10 +29,24 @@ const MITRE_EXFIL_USB: MitreRef = MitreRef("T1052.001");
 /// `file` is the source filename recorded in each record's [`Provenance`].
 /// Non-matching lines are skipped; the function never panics on any input.
 #[must_use]
-pub fn parse_setupapi(_text: &str, _file: &str) -> Vec<DeviceConnection> {
-    // RED stub — the real parser (header grammars, VID/PID/serial extraction,
-    // bus classification, timestamp tagging) lands in the GREEN commit.
-    Vec::new()
+pub fn parse_setupapi(text: &str, file: &str) -> Vec<DeviceConnection> {
+    let mut out = Vec::new();
+    for (idx, line) in text.lines().enumerate() {
+        // Real section headers are prefixed by a `>>>  ` (or `<<<  `) marker;
+        // strip any leading marker/whitespace run before the `[`.
+        let trimmed = line.trim().trim_start_matches(['>', '<', ' ', '\t']);
+        if !trimmed.starts_with('[') {
+            continue;
+        }
+        let Some((instance_id, install_ts)) = parse_header(trimmed) else {
+            continue;
+        };
+        let Some(conn) = build_connection(&instance_id, install_ts, file, idx + 1) else {
+            continue; // cov:unreachable: extract_instance_id guarantees a non-empty alphanumeric enumerator
+        };
+        out.push(conn);
+    }
+    out
 }
 
 /// Extract `(device_instance_id, epoch_seconds)` from a `[ … ]` section header,
