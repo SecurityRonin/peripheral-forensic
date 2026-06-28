@@ -1,6 +1,6 @@
 [package]
 name = "peripheral-forensic"
-version = "0.1.0"
+version = "0.2.0"
 description = "Forensic anomaly auditor for external-device connections — DMA-capable devices, mass-storage, HID/BadUSB, and OS-generated serials as graded report::Finding, built on peripheral-core"
 edition.workspace = true
 rust-version.workspace = true
@@ -16,7 +16,7 @@ exclude = ["/fuzz", "/.github", "/docs"]
 
 [dependencies]
 peripheral-core = { version = "0.1", path = "../core" }
-forensicnomicon = "0.4"
+forensicnomicon = "1"
 
 [lints]
 workspace = true
