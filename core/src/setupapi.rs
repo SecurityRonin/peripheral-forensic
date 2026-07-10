@@ -223,6 +223,7 @@ fn build_connection(
         source: Provenance {
             file: file.to_string(),
             line,
+            key_path: None,
         },
     })
 }

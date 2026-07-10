@@ -11,6 +11,25 @@ this README is the co-located human-facing detail.
 
 ## Fixtures
 
+### `synthetic_usb_system.hive` — SYNTHETIC (generated, `✓` confirmed)
+
+An 8 KB in-memory REGF `SYSTEM` hive (md5 `c3f6090c6948f32e962908d66973a5d9`)
+holding three device instances that exercise every branch of the `registry`
+decoder deterministically in CI: an `Enum\SCSI` disk (`0064` first-install +
+`0066` last-arrival FILETIMEs, UTF-16 `FriendlyName`, OS-generated serial), an
+`Enum\USBSTOR` disk (first-install via the `0065` fallback + `0067` last-removal,
+no `FriendlyName`), and an `Enum\USB` device (`VID_0781&PID_5583`, real iSerial).
+
+**Generator** (verbatim): built with `winreg-testutil`'s `TestHiveBuilder`
+(`add_key` / `add_value(key, name, type, data)` with FILETIME = `(epoch +
+11_644_473_600) * 10_000_000` little-endian, `FriendlyName` as UTF-16LE) — the
+source lives at `docs/` build notes; regenerate by rerunning that builder. This
+is a **Tier-3 coverage fixture**: the decoder's *correctness* is validated at
+**Tier-1** by `core/tests/registry_real_hive.rs` against the real DFIR Madness
+"Szechuan Sauce" `SYSTEM` hive, cross-checked with the independent **regipy**
+oracle (env-gated on `PERIPHERAL_TEST_SYSTEM_HIVE`). `winreg-core` reads this
+hive; regipy's stricter traversal does not, which is why it is coverage-only.
+
 ### `setupapi.dev.log` — SYNTHETIC (spec-exact, `✓` confirmed)
 
 A hand-authored Vista+ `setupapi.dev.log` matching the Microsoft SetupAPI

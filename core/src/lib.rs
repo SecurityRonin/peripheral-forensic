@@ -20,6 +20,7 @@
 #![forbid(unsafe_code)]
 
 pub mod linux_syslog;
+pub mod registry;
 pub mod setupapi;
 
 /// The physical/logical bus a peripheral attached through.
@@ -233,10 +234,16 @@ pub struct DeviceConnection {
 /// Where a [`DeviceConnection`] was decoded from.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Provenance {
-    /// The source file (e.g. `setupapi.dev.log`).
+    /// The source file (e.g. `setupapi.dev.log`, or the hive name `SYSTEM`).
     pub file: String,
-    /// 1-based line number of the section header the record came from.
+    /// 1-based line number of the section header the record came from, for
+    /// line-oriented sources (`setupapi.dev.log`). `0` when the source is not
+    /// line-oriented (e.g. a registry hive — see [`key_path`](Self::key_path)).
     pub line: usize,
+    /// The full registry key path the record was decoded from, for hive sources
+    /// (e.g. `ControlSet001\Enum\SCSI\Disk&Ven_…\5&22be343f&0&000000`). `None` for
+    /// line-oriented sources.
+    pub key_path: Option<String>,
 }
 
 #[cfg(test)]
