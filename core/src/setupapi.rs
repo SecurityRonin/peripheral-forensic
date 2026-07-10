@@ -150,7 +150,12 @@ fn parse_timestamp(s: &str) -> Option<i64> {
 
 /// Convert a civil UTC date-time to Unix epoch seconds (Howard Hinnant's
 /// `days_from_civil` algorithm). Returns `None` for an out-of-range field.
-fn civil_to_epoch(y: i64, m: i64, d: i64, hh: i64, mm: i64, ss: i64) -> Option<i64> {
+pub(crate) fn civil_to_epoch(y: i64, m: i64, d: i64, hh: i64, mm: i64, ss: i64) -> Option<i64> {
+    // Bound the year to real dates: a malformed log can parse an arbitrarily large year,
+    // which would overflow the day/second multiplications below (fuzz-found panic).
+    if !(1..=9999).contains(&y) {
+        return None;
+    }
     if !(1..=12).contains(&m) || !(1..=31).contains(&d) {
         return None;
     }
@@ -351,6 +356,15 @@ mod tests {
         let c = &parse_setupapi(VISTA_USB, "f")[0];
         assert!(c.device_serial.is_some());
         assert_eq!(c.volume_serial, None);
+    }
+
+    #[test]
+    fn civil_to_epoch_rejects_out_of_range_year_without_overflow() {
+        // Fuzz regression: a huge year must return None, not overflow-panic.
+        assert_eq!(civil_to_epoch(9_999_999_999, 1, 1, 0, 0, 0), None);
+        assert_eq!(civil_to_epoch(0, 1, 1, 0, 0, 0), None); // year 0 out of range
+        assert_eq!(civil_to_epoch(2023, 4, 15, 14, 23, 11), Some(1_681_568_591));
+        // still valid
     }
 
     #[test]
