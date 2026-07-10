@@ -30,6 +30,25 @@ is a **Tier-3 coverage fixture**: the decoder's *correctness* is validated at
 oracle (env-gated on `PERIPHERAL_TEST_SYSTEM_HIVE`). `winreg-core` reads this
 hive; regipy's stricter traversal does not, which is why it is coverage-only.
 
+### `synthetic_mounted_devices.hive` — SYNTHETIC (generated, `✓` confirmed)
+
+An 8 KB in-memory REGF `SYSTEM` hive (md5 `44d40476de01203fc0d925f0353c6fca`)
+covering the `MountedDevices` drive-letter join deterministically in CI: one
+`Enum\SCSI` device instance (`5&join123&0`) plus a `MountedDevices` key with
+three REG_BINARY values — `\DosDevices\E:` → the UTF-16LE device path naming
+that instance (the join → drive `E:`), a 12-byte MBR record under
+`\DosDevices\C:` (disk signature + offset, no device path → skipped), and a
+`\??\Volume{…}` device path (a volume GUID, no drive letter → skipped).
+
+**Generator** (verbatim): `winreg-testutil`'s `TestHiveBuilder` —
+`add_key("ControlSet001\Enum\SCSI\Disk&Ven_Test&Prod_X\5&join123&0")` and a
+`MountedDevices` key with the three `add_value(name, REG_BINARY, data)` entries
+above (device paths UTF-16LE-encoded, no NUL terminator). **Tier-3 coverage
+fixture**: correctness is validated at **Tier-1** by
+`mounted_devices_joins_drive_letter_d_to_the_cdrom_device` in
+`core/tests/registry_real_hive.rs` against the real Szechuan `SYSTEM` hive
+(regipy oracle: `\DosDevices\D:` → the CD-ROM device instance).
+
 ### `setupapi.dev.log` — SYNTHETIC (spec-exact, `✓` confirmed)
 
 A hand-authored Vista+ `setupapi.dev.log` matching the Microsoft SetupAPI

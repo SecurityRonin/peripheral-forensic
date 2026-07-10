@@ -61,7 +61,85 @@ pub fn parse_registry(hive: &Hive<Cursor<Vec<u8>>>, file: &str) -> Vec<DeviceCon
             }
         }
     }
+    apply_mounted_devices(hive, &mut out);
     out
+}
+
+/// Enrich connections with drive letters decoded from the `MountedDevices` key.
+///
+/// `MountedDevices` maps a mount name — `\DosDevices\X:` (a drive letter) or
+/// `\??\Volume{guid}` (a volume, no letter) — to a REG_BINARY value that is either a
+/// 12-byte MBR record (disk signature + partition offset) or a UTF-16LE device path
+/// `\??\<CLASS>#<Ven&Prod>#<instance>#{guid}`. The device-path form names a device
+/// instance directly, so a `\DosDevices\X:` entry pointing at a device path gives a
+/// drive-letter ↔ device join. MBR records and volume-GUID names carry no drive letter;
+/// the MBR disk-signature join needs the device-side signature from the
+/// Partition/Diagnostic log (a separate source) and is not attempted here.
+fn apply_mounted_devices(hive: &Hive<Cursor<Vec<u8>>>, conns: &mut [DeviceConnection]) {
+    let Ok(Some(md)) = hive.open_key("MountedDevices") else {
+        return;
+    };
+    let Ok(values) = md.values() else {
+        return; // cov:unreachable: values() only errors on hive corruption; a valid hive yields Ok
+    };
+    for value in values {
+        let Some(letter) = dos_drive_letter(&value.name()) else {
+            continue;
+        };
+        let Ok(raw) = value.raw_data() else {
+            continue; // cov:unreachable: raw_data() only errors on hive corruption
+        };
+        let Some(instance) = device_path_instance(&raw) else {
+            continue;
+        };
+        let suffix = format!("\\{instance}");
+        for conn in conns.iter_mut() {
+            if conn.device_instance_id == instance || conn.device_instance_id.ends_with(&suffix) {
+                conn.drive_letter = Some(letter);
+            }
+        }
+    }
+}
+
+/// Extract the drive letter from a `\DosDevices\X:` mount name, upper-cased. Any other
+/// name (a volume GUID, a malformed name) yields `None`.
+fn dos_drive_letter(name: &str) -> Option<char> {
+    let tail = name.strip_prefix("\\DosDevices\\")?;
+    let mut chars = tail.chars();
+    let letter = chars.next()?;
+    if letter.is_ascii_alphabetic() && chars.next() == Some(':') && chars.next().is_none() {
+        Some(letter.to_ascii_uppercase())
+    } else {
+        None
+    }
+}
+
+/// Decode a `MountedDevices` REG_BINARY value as a UTF-16LE device path and return the
+/// device instance component (`\??\<CLASS>#<Ven&Prod>#<instance>#{guid}` → `<instance>`).
+/// Returns `None` for a 12-byte MBR record, a non-device-path string, or malformed bytes.
+fn device_path_instance(raw: &[u8]) -> Option<String> {
+    if raw.len() < 8 || raw.len() % 2 != 0 {
+        return None;
+    }
+    let units: Vec<u16> = raw
+        .chunks_exact(2)
+        .map(|c| u16::from_le_bytes([c[0], c[1]]))
+        .collect();
+    let decoded = String::from_utf16(&units).ok()?;
+    let path = decoded.strip_prefix("\\??\\")?;
+    let mut parts: Vec<&str> = path.split('#').collect();
+    // Drop the trailing `{GUID}` interface-class component when present.
+    if parts
+        .last()
+        .is_some_and(|p| p.starts_with('{') && p.ends_with('}'))
+    {
+        parts.pop();
+    }
+    let instance = *parts.last()?;
+    if instance.is_empty() || parts.len() < 2 {
+        return None;
+    }
+    Some(instance.to_string())
 }
 
 /// Build one [`DeviceConnection`] from a decoded device-instance key.
