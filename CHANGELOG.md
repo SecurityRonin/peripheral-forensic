@@ -6,16 +6,27 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Planned — v0.2 (registry `Enum\` + EVTX enrichment)
+## [peripheral-core 0.2.0 / peripheral-forensic 0.2.0] — 2026-07-11
 
-- Windows registry `SYSTEM\CurrentControlSet\Enum\` (USBSTOR/USB) source — real
-  iSerials, `ParentIdPrefix`, friendly names; `MountedDevices` for volume-serial
-  / drive-letter / disk-signature correlation join keys; the undocumented
-  `0066` / `0067` Last-Arrival / Last-Removal device-property `FILETIME`s
-  (populating the `Inferred` `last_arrival` / `last_removal` stamps).
-- EVTX device-connection events.
-- Both require the (unpublished) `winreg-core` and `winevt-forensic` fleet
-  crates and are therefore out of scope for v0.1.
+### Added — `peripheral-core` (reader)
+
+- Windows registry `SYSTEM\CurrentControlSet\Enum\{USBSTOR,SCSI,USB}` device
+  source (`registry` module, over `winreg-core`) — real device iSerials,
+  friendly names, and the device-property `FILETIME`s under
+  `Properties\{83da6326-…}\`: `0064` install, `0065` first-install, and the
+  undocumented `0066` / `0067` Last-Arrival / Last-Removal stamps that populate
+  the `Inferred` `last_arrival` / `last_removal` fields. Decoder validated
+  Tier-1 against `regipy` on the real DFIRMadness Szechuan SYSTEM hive.
+- Linux kernel-log (`syslog` / `dmesg`) USB source (`linux_syslog` module) —
+  parses `usb … idVendor=…, idProduct=…` connection blocks into
+  `DeviceConnection`s. Validated against a real UAC-collected `installer/syslog`.
+
+### Fixed — `peripheral-core`
+
+- `setupapi` `civil_to_epoch` no longer panics on a malformed log line carrying
+  an out-of-range year; the year is bounded to `1..=9999` before the day/second
+  multiplications (fuzz-found integer overflow, regression-tested and seeded in
+  the fuzz corpus).
 
 ## [peripheral-core 0.1.0 / peripheral-forensic 0.1.0] — 2026-06-13
 

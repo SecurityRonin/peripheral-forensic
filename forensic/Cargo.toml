@@ -15,7 +15,7 @@ categories = ["parser-implementations", "command-line-utilities"]
 exclude = ["/fuzz", "/.github", "/docs"]
 
 [dependencies]
-peripheral-core = { version = "0.1", path = "../core" }
+peripheral-core = { version = "0.2", path = "../core" }
 forensicnomicon = "1"
 
 [lints]
