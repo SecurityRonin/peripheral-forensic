@@ -6,6 +6,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [peripheral-core 0.3.0] — 2026-07-11
+
+### Added — `peripheral-core` (reader)
+
+- `MountedDevices` drive-letter join: `parse_registry` now decodes the SYSTEM
+  `MountedDevices` key and sets `DeviceConnection.drive_letter` for device-path
+  entries under `\DosDevices\X:` (the UTF-16LE `\??\<CLASS>#<Ven&Prod>#<instance>#{guid}`
+  form that names a device instance directly). MBR records and volume-GUID names
+  carry no drive letter and are skipped; the decoders are panic-free and total.
+  Validated Tier-1 on the real Szechuan hive (regipy oracle: `D:` → the CD-ROM
+  device instance).
+
 ## [peripheral-core 0.2.0 / peripheral-forensic 0.2.0] — 2026-07-11
 
 ### Added — `peripheral-core` (reader)
