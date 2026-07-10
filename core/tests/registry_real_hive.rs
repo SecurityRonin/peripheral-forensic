@@ -45,3 +45,22 @@ fn vmware_scsi_disk_matches_regipy_ground_truth() {
     );
     assert!(disk.source.key_path.is_some());
 }
+
+#[test]
+fn mounted_devices_joins_drive_letter_d_to_the_cdrom_device() {
+    // regipy oracle on \MountedDevices: \DosDevices\D: → the device path
+    // \??\SCSI#CdRom&Ven_NECVMWar&Prod_VMware_SATA_CD01#5&12368b4a&0&010000#{…},
+    // so the CD-ROM device instance mounts as drive D:.
+    let Ok(path) = std::env::var("PERIPHERAL_TEST_SYSTEM_HIVE") else {
+        eprintln!("SKIP: set PERIPHERAL_TEST_SYSTEM_HIVE to the Szechuan SYSTEM hive");
+        return;
+    };
+    let hive = Hive::from_path(Path::new(&path)).expect("valid SYSTEM hive");
+    let conns = parse_registry(&hive, "SYSTEM");
+
+    let cdrom = conns
+        .iter()
+        .find(|c| c.device_instance_id.ends_with("5&12368b4a&0&010000"))
+        .expect("CD-ROM device instance present in the Szechuan SYSTEM hive");
+    assert_eq!(cdrom.drive_letter, Some('D'));
+}

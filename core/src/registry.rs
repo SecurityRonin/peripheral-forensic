@@ -225,4 +225,66 @@ mod tests {
         // present prefix but too short / non-hex → None, never a panic.
         assert_eq!(parse_vid_pid("VID_07&PID_ZZZZ"), (None, None));
     }
+
+    /// UTF-16LE encode a device path the way `MountedDevices` stores it (REG_BINARY).
+    fn u16le(s: &str) -> Vec<u8> {
+        s.encode_utf16().flat_map(u16::to_le_bytes).collect()
+    }
+
+    #[test]
+    fn dos_drive_letter_extracts_only_well_formed_names() {
+        assert_eq!(dos_drive_letter("\\DosDevices\\E:"), Some('E'));
+        assert_eq!(dos_drive_letter("\\DosDevices\\c:"), Some('C')); // upper-cased
+                                                                     // a volume-GUID mount name carries no drive letter.
+        assert_eq!(dos_drive_letter("\\??\\Volume{1234}"), None);
+        // malformed DosDevices names never panic, never yield a letter.
+        assert_eq!(dos_drive_letter("\\DosDevices\\"), None);
+        assert_eq!(dos_drive_letter("\\DosDevices\\EE:"), None);
+        assert_eq!(dos_drive_letter("\\DosDevices\\1:"), None);
+    }
+
+    #[test]
+    fn device_path_instance_extracts_the_instance_or_rejects() {
+        let dev =
+            "\\??\\SCSI#Disk&Ven_Test&Prod_X#5&join123&0#{53f5630d-b6bf-11d0-94f2-00a0c91efb8b}";
+        assert_eq!(
+            device_path_instance(&u16le(dev)).as_deref(),
+            Some("5&join123&0")
+        );
+        // a device path without a trailing {GUID} component still yields the instance.
+        assert_eq!(
+            device_path_instance(&u16le("\\??\\USBSTOR#Disk&Ven#INST42")).as_deref(),
+            Some("INST42")
+        );
+        // a 12-byte MBR record (disk signature + offset) is not a device path.
+        assert_eq!(
+            device_path_instance(&[0x11, 0x22, 0x33, 0x44, 0, 0, 0, 0, 0, 0, 0, 0]),
+            None
+        );
+        // too short / odd length / not a \??\ path / single component → None, no panic.
+        assert_eq!(device_path_instance(&[0, 0]), None);
+        assert_eq!(device_path_instance(&[1, 2, 3]), None);
+        assert_eq!(device_path_instance(&u16le("C:\\not-a-device-path")), None);
+        assert_eq!(device_path_instance(&u16le("\\??\\onlyonepart")), None);
+        // a lone UTF-16 surrogate must be rejected, not panic.
+        assert_eq!(
+            device_path_instance(&[0x00, 0xD8, 0x00, 0xD8, 0x00, 0x00, 0x00, 0x00]),
+            None
+        );
+    }
+
+    #[test]
+    fn mounted_devices_join_sets_drive_letter_on_the_matching_device() {
+        // Synthetic SYSTEM hive: one SCSI instance + a MountedDevices key mapping
+        // \DosDevices\E: → that instance's device path, plus an MBR record and a
+        // volume-GUID path that must NOT produce a drive letter.
+        const HIVE: &[u8] = include_bytes!("../../tests/data/synthetic_mounted_devices.hive");
+        let hive = Hive::from_bytes(HIVE.to_vec()).expect("valid REGF");
+        let conns = parse_registry(&hive, "SYNTHETIC");
+        let dev = conns
+            .iter()
+            .find(|c| c.device_instance_id.ends_with("5&join123&0"))
+            .expect("device present");
+        assert_eq!(dev.drive_letter, Some('E'));
+    }
 }
