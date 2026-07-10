@@ -193,6 +193,7 @@ mod tests {
             source: Provenance {
                 file: "f".into(),
                 line: 1,
+                key_path: None,
             },
         }
     }
