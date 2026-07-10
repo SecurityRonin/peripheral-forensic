@@ -105,6 +105,7 @@ impl Partial {
             source: Provenance {
                 file: file.to_string(),
                 line: self.line,
+                key_path: None,
             },
         }
     }
