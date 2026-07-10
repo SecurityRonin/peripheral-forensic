@@ -32,7 +32,7 @@ const CONTROL_SETS: [&str; 2] = ["ControlSet001", "ControlSet002"];
 ///
 /// The caller opens the hive (a bootstrap step that must fail loudly on its own); this
 /// function walks it and is total over a valid hive — a malformed subkey is skipped, not
-/// panicked on. `file` is recorded as the [`Provenance`](crate::Provenance) file (the
+/// panicked on. `file` is recorded as the [`Provenance`] file (the
 /// hive name, e.g. `SYSTEM`); each record also carries its full key path.
 #[must_use]
 pub fn parse_registry(hive: &Hive<Cursor<Vec<u8>>>, file: &str) -> Vec<DeviceConnection> {
