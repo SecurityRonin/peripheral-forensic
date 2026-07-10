@@ -150,7 +150,7 @@ fn parse_timestamp(s: &str) -> Option<i64> {
 
 /// Convert a civil UTC date-time to Unix epoch seconds (Howard Hinnant's
 /// `days_from_civil` algorithm). Returns `None` for an out-of-range field.
-fn civil_to_epoch(y: i64, m: i64, d: i64, hh: i64, mm: i64, ss: i64) -> Option<i64> {
+pub(crate) fn civil_to_epoch(y: i64, m: i64, d: i64, hh: i64, mm: i64, ss: i64) -> Option<i64> {
     if !(1..=12).contains(&m) || !(1..=31).contains(&d) {
         return None;
     }

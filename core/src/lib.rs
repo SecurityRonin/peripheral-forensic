@@ -19,6 +19,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod linux_syslog;
 pub mod setupapi;
 
 /// The physical/logical bus a peripheral attached through.

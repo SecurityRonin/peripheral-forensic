@@ -52,3 +52,12 @@ one:
 
 Never commit a real person's `setupapi.dev.log` — it embeds the serial numbers of
 every device they ever attached. Redact or regenerate before sharing.
+
+### Linux syslog — REAL (env-gated, not committed)
+
+The Linux kernel-log reader is validated against a genuine UAC (Unix-like Artifacts
+Collector) `syslog` from the **HAL Linux DFIR challenge** (issen corpus:
+`hal-linux-dfir-challenge/uac-vbox-linux-*.tar.gz`, extract to `/tmp`). The env-gated
+test `core/tests/linux_syslog_real.rs` (`LINUX_SYSLOG_PATH`) confirms it extracts the
+real VirtualBox USB Tablet (`idVendor=80ee, idProduct=0021`, "USB Tablet") and root
+hubs (`idVendor=1d6b`). The archive is large and lives in the issen corpus, not here.
