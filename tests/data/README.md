@@ -30,6 +30,26 @@ is a **Tier-3 coverage fixture**: the decoder's *correctness* is validated at
 oracle (env-gated on `PERIPHERAL_TEST_SYSTEM_HIVE`). `winreg-core` reads this
 hive; regipy's stricter traversal does not, which is why it is coverage-only.
 
+### `synthetic_win7_props.hive` — SYNTHETIC (generated, `✓` confirmed)
+
+An 8 KB in-memory REGF `SYSTEM` hive (md5 `032bb05b9cb9d6c7515d867c6f0764f3`)
+covering the **Windows 7** device-property FILETIME layout deterministically in CI: one
+`USBSTOR` device whose install FILETIME lives at
+`Properties\{83da6326-…}\00000064\00000000` in a `Data` REG_BINARY value (8-hex property
+name + nested `00000000` leaf), the older layout distinct from the modern
+`{GUID}\0064`-default-value form. Decodes to epoch `1_427_135_471` (2015-03-23
+18:31:11 UTC).
+
+**Generator** (verbatim): `winreg-testutil`'s `TestHiveBuilder` — `add_key` for
+`ControlSet001\Enum\USBSTOR\Disk&Ven_Test&Prod_W7\7&win7serial&0` and its
+`Properties\{83da6326-…}\00000064\00000000` leaf, `add_value("Data", REG_BINARY,
+<FILETIME LE>)` with `FILETIME = (epoch + 11_644_473_600) * 10_000_000`. **Tier-3
+coverage fixture**: the same Win7 decode is validated **Tier-1** by
+`win7_usbstor_device_property_filetimes_are_decoded` in `core/tests/registry_real_hive.rs`
+against the real **NIST CFReDS Data-Leakage** SYSTEM hive (Windows 7), whose SanDisk
+Cruzer Fit devices' install times match the published NIST answer key
+(env var `PERIPHERAL_TEST_WIN7_SYSTEM`; the challenge image is not redistributed).
+
 ### `synthetic_mounted_devices.hive` — SYNTHETIC (generated, `✓` confirmed)
 
 An 8 KB in-memory REGF `SYSTEM` hive (md5 `44d40476de01203fc0d925f0353c6fca`)

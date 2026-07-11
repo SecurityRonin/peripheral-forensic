@@ -162,14 +162,14 @@ fn build_connection(
         .ok()
         .flatten()
         .and_then(|p| p.subkey(TS_GUID).ok().flatten());
-    let filetime = |prop: &str| ts.as_ref().and_then(|k| read_filetime(k, prop));
-    // 0064/0065 are documented install dates (authoritative); 0066/0067 are the
+    let filetime = |prop: u32| ts.as_ref().and_then(|k| read_filetime(k, prop));
+    // 0x64/0x65 are documented install dates (authoritative); 0x66/0x67 are the
     // undocumented last-arrival/removal properties (inferred).
-    let first_install = filetime("0064")
-        .or_else(|| filetime("0065"))
+    let first_install = filetime(0x64)
+        .or_else(|| filetime(0x65))
         .map(Stamp::authoritative);
-    let last_arrival = filetime("0066").map(Stamp::inferred);
-    let last_removal = filetime("0067").map(Stamp::inferred);
+    let last_arrival = filetime(0x66).map(Stamp::inferred);
+    let last_removal = filetime(0x67).map(Stamp::inferred);
 
     DeviceConnection {
         bus,
@@ -208,13 +208,44 @@ fn value_string(key: &Key<'_>, name: &str) -> Option<String> {
         .filter(|s| !s.is_empty())
 }
 
-/// Read the `FILETIME` in the default value of `guid_key\<prop>` as Unix epoch seconds.
-fn read_filetime(guid_key: &Key<'_>, prop: &str) -> Option<i64> {
-    let prop_key = guid_key.subkey(prop).ok().flatten()?;
-    let raw = prop_key.value("").ok().flatten()?.raw_data().ok()?;
+/// Read the device-property `FILETIME` numbered `prop` (e.g. `0x64`) as Unix epoch
+/// seconds, handling both Windows device-property-store layouts:
+///
+/// - **Windows 8+/Server 2012+:** the property subkey is named with 4 hex digits
+///   (`0064`) and the `FILETIME` is its default (unnamed) value.
+/// - **Windows 7:** the subkey is named with 8 hex digits (`00000064`) and the
+///   `FILETIME` is the `Data` value of a nested `00000000` leaf key.
+///
+/// The property is matched by its numeric value so any zero-padding resolves, and both
+/// value locations are tried. Verified Tier-1 against the Szechuan (Server 2012 R2) and
+/// NIST CFReDS Data-Leakage (Windows 7) hives.
+fn read_filetime(guid_key: &Key<'_>, prop: u32) -> Option<i64> {
+    let prop_key = find_prop_subkey(guid_key, prop)?;
+    let raw = prop_key
+        .value("")
+        .ok()
+        .flatten()
+        .and_then(|v| v.raw_data().ok())
+        .or_else(|| {
+            // Win7 nested layout: `<prop>\00000000` with the FILETIME in `Data`.
+            let leaf = find_prop_subkey(&prop_key, 0)?;
+            leaf.value("Data")
+                .ok()
+                .flatten()
+                .and_then(|v| v.raw_data().ok())
+        })?;
     let bytes: [u8; 8] = raw.get(..8)?.try_into().ok()?;
     let ts = filetime_to_datetime(u64::from_le_bytes(bytes))?;
     Some(ts.as_second())
+}
+
+/// Find a device-property subkey by its numeric hex value, tolerating any zero-padding
+/// (`0064` and `00000064` both match `0x64`).
+fn find_prop_subkey<'a>(key: &Key<'a>, num: u32) -> Option<Key<'a>> {
+    key.subkeys()
+        .ok()?
+        .into_iter()
+        .find(|k| u32::from_str_radix(&k.name(), 16).ok() == Some(num))
 }
 
 /// Extract `(vid, pid)` from a `VID_xxxx&PID_xxxx` enumerator key name (USB only).
@@ -364,5 +395,26 @@ mod tests {
             .find(|c| c.device_instance_id.ends_with("5&join123&0"))
             .expect("device present");
         assert_eq!(dev.drive_letter, Some('E'));
+    }
+
+    #[test]
+    fn win7_nested_property_layout_filetime_is_decoded() {
+        // Synthetic Windows-7-layout hive: the install FILETIME lives at
+        // Properties\{GUID}\00000064\00000000 in a `Data` value (8-hex property name +
+        // nested leaf), not the modern 0064-default-value layout. Deterministic CI cover
+        // for the Win7 branch of `read_filetime`; the same decode is validated Tier-1 on
+        // the real NIST CFReDS hive in `tests/registry_real_hive.rs`.
+        const HIVE: &[u8] = include_bytes!("../../tests/data/synthetic_win7_props.hive");
+        let hive = Hive::from_bytes(HIVE.to_vec()).expect("valid REGF");
+        let conns = parse_registry(&hive, "SYNTHETIC");
+        let dev = conns
+            .iter()
+            .find(|c| c.device_instance_id.ends_with("7&win7serial&0"))
+            .expect("Win7 device present");
+        assert_eq!(
+            dev.first_install.as_ref().map(|s| s.value),
+            Some(1_427_135_471),
+            "install FILETIME decoded from the nested 00000064\\00000000\\Data leaf"
+        );
     }
 }
