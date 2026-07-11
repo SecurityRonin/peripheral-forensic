@@ -160,3 +160,22 @@ fn cfreds_mounted_devices_mbr_bridges_drive_letter_to_volume_guid() {
         Some("{a2f2048e-d228-11e4-b630-000c29ff2429}")
     );
 }
+
+#[test]
+fn cfreds_mountpoints2_records_the_informants_usb_volume_mount() {
+    // Tier-1 on the NIST CFReDS Data-Leakage informant NTUSER.DAT (Windows 7). The user
+    // mounted volume {a2f2048e-…} — which the MBR bridge ties to drive E: ("IAMAN $_@") —
+    // the per-user half of the USB-exfil attribution. Its key last-write is the mount time.
+    let Ok(path) = std::env::var("PERIPHERAL_TEST_WIN7_NTUSER") else {
+        eprintln!("SKIP: set PERIPHERAL_TEST_WIN7_NTUSER to the CFReDS informant NTUSER.DAT");
+        return;
+    };
+    let hive = Hive::from_path(Path::new(&path)).expect("valid Win7 NTUSER.DAT");
+    let mounts = peripheral_core::mountpoints2::parse_mountpoints2(&hive, "NTUSER.DAT");
+    let m = mounts
+        .iter()
+        .find(|m| m.volume_guid == "{a2f2048e-d228-11e4-b630-000c29ff2429}")
+        .expect("the informant mounted volume {a2f2048e-…}");
+    // Last-mounted 2015-03-24 21:02:33 UTC (the subkey last-write).
+    assert_eq!(m.last_mounted, Some(1_427_230_953));
+}
