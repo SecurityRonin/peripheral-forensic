@@ -20,6 +20,7 @@
 #![forbid(unsafe_code)]
 
 pub mod linux_syslog;
+pub mod mounted_volumes;
 pub mod registry;
 pub mod setupapi;
 pub mod volume_info;

@@ -125,3 +125,38 @@ fn cfreds_volume_info_cache_recovers_the_usb_volume_label() {
         "the NIST answer-key USB volume label"
     );
 }
+
+#[test]
+fn cfreds_mounted_devices_mbr_bridges_drive_letter_to_volume_guid() {
+    // Tier-1 on the NIST CFReDS Data-Leakage SYSTEM hive (Windows 7). MountedDevices maps
+    // both \DosDevices\E: and \??\Volume{a2f2048e-…} to the SAME 12-byte MBR record
+    // (disk signature 0xE221034C, offset 0x10000), so they are the same volume — the
+    // bridge that ties drive E: ("IAMAN $_@") to the volume GUID the informant mounted.
+    let Ok(path) = std::env::var("PERIPHERAL_TEST_WIN7_SYSTEM") else {
+        eprintln!("SKIP: set PERIPHERAL_TEST_WIN7_SYSTEM to the CFReDS Data-Leakage SYSTEM hive");
+        return;
+    };
+    let hive = Hive::from_path(Path::new(&path)).expect("valid Win7 SYSTEM hive");
+    let vols = peripheral_core::mounted_volumes::parse_mounted_volumes(&hive, "SYSTEM");
+
+    let e = vols
+        .iter()
+        .find(|v| v.drive_letter == Some('E'))
+        .expect("drive E: MBR record present");
+    assert_eq!(e.disk_signature, 0xE221_034C);
+    assert_eq!(e.partition_offset, 0x1_0000);
+
+    // The volume GUID sharing that MBR record is the same volume.
+    let guid = vols
+        .iter()
+        .find(|v| {
+            v.volume_guid.is_some()
+                && v.disk_signature == e.disk_signature
+                && v.partition_offset == e.partition_offset
+        })
+        .expect("a Volume{GUID} shares E:'s MBR record");
+    assert_eq!(
+        guid.volume_guid.as_deref(),
+        Some("{a2f2048e-d228-11e4-b630-000c29ff2429}")
+    );
+}
