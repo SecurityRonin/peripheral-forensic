@@ -69,13 +69,15 @@ Cruzer Fit devices' install times match the published NIST answer key
 
 ### `synthetic_mounted_devices.hive` — SYNTHETIC (generated, `✓` confirmed)
 
-An 8 KB in-memory REGF `SYSTEM` hive (md5 `44d40476de01203fc0d925f0353c6fca`)
-covering the `MountedDevices` drive-letter join deterministically in CI: one
-`Enum\SCSI` device instance (`5&join123&0`) plus a `MountedDevices` key with
-three REG_BINARY values — `\DosDevices\E:` → the UTF-16LE device path naming
-that instance (the join → drive `E:`), a 12-byte MBR record under
-`\DosDevices\C:` (disk signature + offset, no device path → skipped), and a
-`\??\Volume{…}` device path (a volume GUID, no drive letter → skipped).
+An 8 KB in-memory REGF `SYSTEM` hive (md5 `7f9e5d24dda47697131202a45d34e25a`)
+covering both the `MountedDevices` drive-letter join and the MBR-record volume
+bridge deterministically in CI: one `Enum\SCSI` device instance (`5&join123&0`)
+plus a `MountedDevices` key with four REG_BINARY values — `\DosDevices\E:` → the
+UTF-16LE device path naming that instance (the drive-letter join → `E:`), a
+12-byte MBR record under `\DosDevices\C:` (disk signature `0x44332211` + offset;
+decoded by `mounted_volumes`), a `\??\Volume{…}` device path (a volume GUID
+device path, not an MBR record), and a bogus `\GLOBAL??\BogusLink` mount name
+(neither a drive letter nor a volume GUID → skipped by `mounted_volumes`).
 
 **Generator** (verbatim): `winreg-testutil`'s `TestHiveBuilder` —
 `add_key("ControlSet001\Enum\SCSI\Disk&Ven_Test&Prod_X\5&join123&0")` and a

@@ -36,8 +36,39 @@ pub struct MountedVolume {
 /// a wrong length) or an unrecognized mount name is skipped, never panicked on.
 #[must_use]
 pub fn parse_mounted_volumes(hive: &Hive<Cursor<Vec<u8>>>, file: &str) -> Vec<MountedVolume> {
-    let _ = (hive, file);
-    Vec::new()
+    let Ok(Some(md)) = hive.open_key("MountedDevices") else {
+        return Vec::new();
+    };
+    let Ok(values) = md.values() else {
+        return Vec::new(); // cov:unreachable: values() only errors on hive corruption
+    };
+    let mut out = Vec::new();
+    for value in values {
+        let name = value.name();
+        let drive_letter = dos_drive_letter(&name);
+        let volume_guid = volume_guid(&name);
+        if drive_letter.is_none() && volume_guid.is_none() {
+            continue;
+        }
+        let Ok(raw) = value.raw_data() else {
+            continue; // cov:unreachable: raw_data() only errors on hive corruption
+        };
+        let Some((disk_signature, partition_offset)) = decode_mbr(&raw) else {
+            continue;
+        };
+        out.push(MountedVolume {
+            drive_letter,
+            volume_guid,
+            disk_signature,
+            partition_offset,
+            source: Provenance {
+                file: file.to_string(),
+                line: 0,
+                key_path: Some(format!("MountedDevices\\{name}")),
+            },
+        });
+    }
+    out
 }
 
 /// Extract the drive letter from a `\DosDevices\X:` mount name, upper-cased.
@@ -113,5 +144,20 @@ mod tests {
             .expect("C: MBR record present");
         assert_eq!(c.disk_signature, 0x4433_2211);
         assert!(c.source.key_path.is_some());
+        // The bogus `\GLOBAL??\BogusLink` mount name is neither a drive letter nor a
+        // volume GUID → skipped (only the C: MBR record survives; the E:/Volume entries
+        // hold device paths, not MBR records).
+        assert!(!vols
+            .iter()
+            .any(|v| v.drive_letter.is_none() && v.volume_guid.is_none()));
+        assert_eq!(vols.len(), 1);
+    }
+
+    #[test]
+    fn a_hive_without_mounted_devices_yields_nothing() {
+        // The synthetic USBSTOR SYSTEM hive has no MountedDevices key → empty, no panic.
+        const HIVE: &[u8] = include_bytes!("../../tests/data/synthetic_usb_system.hive");
+        let hive = Hive::from_bytes(HIVE.to_vec()).expect("valid REGF");
+        assert!(parse_mounted_volumes(&hive, "SYSTEM").is_empty());
     }
 }
