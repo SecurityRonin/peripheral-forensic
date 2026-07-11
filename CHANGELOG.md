@@ -6,6 +6,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [peripheral-core 0.5.0] — 2026-07-12
+
+### Added — `peripheral-core` (reader)
+
+- `mounted_volumes` module: `parse_mounted_volumes` decodes the 12-byte `MountedDevices`
+  MBR records (`disk_signature` + `partition_offset`) for drive-letter (`\DosDevices\X:`)
+  and volume-GUID (`\??\Volume{…}`) mount names into `MountedVolume` records. Volumes
+  sharing a `(disk_signature, partition_offset)` are the same volume — the bridge that
+  ties a drive letter to a volume GUID (and so a `VolumeInfoCache` label to a
+  `MountPoints2` per-user mount). Validated Tier-1 on the NIST CFReDS Data-Leakage SYSTEM
+  hive: `\DosDevices\E:` and `\??\Volume{a2f2048e-…}` share disk signature `0xE221034C`.
+
 ## [peripheral-core 0.4.0] — 2026-07-12
 
 ### Added — `peripheral-core` (reader)
