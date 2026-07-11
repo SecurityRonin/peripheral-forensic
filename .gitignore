@@ -13,3 +13,4 @@ Cargo.lock
 !/tests/data/synthetic_win7_props.hive
 !/tests/data/synthetic_volume_info_cache.hive
 !/tests/data/synthetic_mountpoints2.hive
+!/tests/data/synthetic_emdmgmt.hive

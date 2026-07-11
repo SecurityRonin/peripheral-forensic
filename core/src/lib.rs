@@ -19,6 +19,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod emdmgmt;
 pub mod linux_syslog;
 pub mod mounted_volumes;
 pub mod mountpoints2;

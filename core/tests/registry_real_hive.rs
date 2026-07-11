@@ -179,3 +179,25 @@ fn cfreds_mountpoints2_records_the_informants_usb_volume_mount() {
     // Last-mounted 2015-03-24 21:02:33 UTC (the subkey last-write).
     assert_eq!(m.last_mounted, Some(1_427_230_953));
 }
+
+#[test]
+fn cfreds_emdmgmt_recovers_the_usb_volume_labels_and_serials() {
+    // Tier-1 on the NIST CFReDS Data-Leakage SOFTWARE hive (Windows 7). EMDMgmt caches the
+    // two SanDisk sticks' labels + 4-byte volume serials (the NIST answer-key labels).
+    let Ok(path) = std::env::var("PERIPHERAL_TEST_WIN7_SOFTWARE") else {
+        eprintln!("SKIP: set PERIPHERAL_TEST_WIN7_SOFTWARE to the CFReDS Data-Leakage SOFTWARE hive");
+        return;
+    };
+    let hive = Hive::from_path(Path::new(&path)).expect("valid Win7 SOFTWARE hive");
+    let vols = peripheral_core::emdmgmt::parse_emdmgmt(&hive, "SOFTWARE");
+    let auth = vols
+        .iter()
+        .find(|v| v.volume_label == "Authorized USB")
+        .expect("RM#1 'Authorized USB' present in EMDMgmt");
+    assert_eq!(auth.volume_serial, 1_551_191_358);
+    let iaman = vols
+        .iter()
+        .find(|v| v.volume_label == "IAMAN $_@")
+        .expect("RM#2 'IAMAN $_@' present in EMDMgmt");
+    assert_eq!(iaman.volume_serial, 2_657_770_370);
+}
