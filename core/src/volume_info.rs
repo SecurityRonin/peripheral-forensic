@@ -33,8 +33,6 @@ pub struct VolumeLabel {
 /// as each record's [`Provenance`] file (the hive name, e.g. `SOFTWARE`).
 #[must_use]
 pub fn parse_volume_info_cache(hive: &Hive<Cursor<Vec<u8>>>, file: &str) -> Vec<VolumeLabel> {
-    return Vec::new(); // RED stub
-    #[allow(unreachable_code)]
     let Ok(Some(cache)) = hive.open_key(CACHE_PATH) else {
         return Vec::new();
     };

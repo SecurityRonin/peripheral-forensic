@@ -30,6 +30,23 @@ is a **Tier-3 coverage fixture**: the decoder's *correctness* is validated at
 oracle (env-gated on `PERIPHERAL_TEST_SYSTEM_HIVE`). `winreg-core` reads this
 hive; regipy's stricter traversal does not, which is why it is coverage-only.
 
+### `synthetic_volume_info_cache.hive` — SYNTHETIC (generated, `✓` confirmed)
+
+An 8 KB in-memory REGF `SOFTWARE` hive (md5 `403723352b1f58bb17955690828903a8`)
+covering the `VolumeInfoCache` volume-label reader deterministically in CI:
+`Microsoft\Windows Search\VolumeInfoCache\` with `E:` labelled `TESTLABEL`, `C:`
+unlabelled (`VolumeLabel` = DWORD `0`, skipped), and a bogus `ZZ:` non-drive-letter
+subkey (skipped). Only `E:` yields a record.
+
+**Generator** (verbatim): `winreg-testutil`'s `TestHiveBuilder` — `add_key` for each
+`VolumeInfoCache\<name>` and `add_value("VolumeLabel", REG_SZ, <UTF-16LE>)` (or a DWORD
+`0` for the unlabelled case). **Tier-3 coverage fixture**: the same decode is validated
+**Tier-1** by `cfreds_volume_info_cache_recovers_the_usb_volume_label` in
+`core/tests/registry_real_hive.rs` against the real **NIST CFReDS Data-Leakage** SOFTWARE
+hive (Windows 7), where drive `E:` carries the SanDisk stick's label `IAMAN $_@` —
+matching the published NIST answer key (env var `PERIPHERAL_TEST_WIN7_SOFTWARE`; the
+challenge image is not redistributed).
+
 ### `synthetic_win7_props.hive` — SYNTHETIC (generated, `✓` confirmed)
 
 An 8 KB in-memory REGF `SYSTEM` hive (md5 `032bb05b9cb9d6c7515d867c6f0764f3`)
