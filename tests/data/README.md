@@ -30,6 +30,23 @@ is a **Tier-3 coverage fixture**: the decoder's *correctness* is validated at
 oracle (env-gated on `PERIPHERAL_TEST_SYSTEM_HIVE`). `winreg-core` reads this
 hive; regipy's stricter traversal does not, which is why it is coverage-only.
 
+### `synthetic_mountpoints2.hive` — SYNTHETIC (generated, `✓` confirmed)
+
+An 8 KB in-memory REGF `NTUSER.DAT` hive (md5 `af350f7c7e0597699058b757328b8963`)
+covering the `MountPoints2` per-user mount reader deterministically in CI:
+`Software\Microsoft\Windows\CurrentVersion\Explorer\MountPoints2\` with one
+volume-GUID subkey (`{a2f2048e-…}`, key last-write epoch `1_427_230_953` =
+2015-03-24 21:02:33 UTC) and a `##server#share` UNC entry (not a `{GUID}` → skipped).
+
+**Generator** (verbatim): `winreg-testutil`'s `TestHiveBuilder` with `with_key_times`
+(FILETIME = `(epoch + 11_644_473_600) * 10_000_000`) and `add_key` for the two
+MountPoints2 subkeys. **Tier-3 coverage fixture**: the same decode is validated
+**Tier-1** by `cfreds_mountpoints2_records_the_informants_usb_volume_mount` in
+`core/tests/registry_real_hive.rs` against the real **NIST CFReDS Data-Leakage** informant
+`NTUSER.DAT` (Windows 7), where the user mounted `{a2f2048e-…}` — tied by the
+`MountedDevices` MBR bridge to drive `E:` (label `IAMAN $_@`) — the per-user half of
+the USB-exfil attribution (env var `PERIPHERAL_TEST_WIN7_NTUSER`).
+
 ### `synthetic_volume_info_cache.hive` — SYNTHETIC (generated, `✓` confirmed)
 
 An 8 KB in-memory REGF `SOFTWARE` hive (md5 `403723352b1f58bb17955690828903a8`)

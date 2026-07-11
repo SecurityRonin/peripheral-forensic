@@ -9,6 +9,7 @@
 use crate::Provenance;
 use std::io::Cursor;
 use winreg_core::hive::Hive;
+use winreg_core::key::Key;
 
 /// The `MountPoints2` path in an `NTUSER.DAT` (user) hive.
 const MP2_PATH: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MountPoints2";
@@ -30,8 +31,6 @@ pub struct UserMount {
 /// skipped, never panicked on. `file` is recorded as each record's [`Provenance`] file.
 #[must_use]
 pub fn parse_mountpoints2(hive: &Hive<Cursor<Vec<u8>>>, file: &str) -> Vec<UserMount> {
-    return Vec::new(); // RED stub
-    #[allow(unreachable_code)]
     let Ok(Some(mp2)) = hive.open_key(MP2_PATH) else {
         return Vec::new();
     };
@@ -46,7 +45,7 @@ pub fn parse_mountpoints2(hive: &Hive<Cursor<Vec<u8>>>, file: &str) -> Vec<UserM
         }
         out.push(UserMount {
             volume_guid: name.to_ascii_lowercase(),
-            last_mounted: sub.last_written().map(|t| t.as_second()),
+            last_mounted: last_written_epoch(&sub),
             source: Provenance {
                 file: file.to_string(),
                 line: 0,
@@ -55,6 +54,11 @@ pub fn parse_mountpoints2(hive: &Hive<Cursor<Vec<u8>>>, file: &str) -> Vec<UserM
         });
     }
     out
+}
+
+/// A key's last-written time as epoch seconds UTC; `None` when the hive recorded none.
+fn last_written_epoch(key: &Key<'_>) -> Option<i64> {
+    Some(key.last_written()?.as_second())
 }
 
 #[cfg(test)]
