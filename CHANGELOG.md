@@ -6,6 +6,16 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [peripheral-core 0.6.0] — 2026-07-12
+
+### Added — `peripheral-core` (reader)
+
+- `mountpoints2` module: `parse_mountpoints2` reads `NTUSER.DAT` `MountPoints2` volume-GUID
+  subkeys into `UserMount { volume_guid, last_mounted, source }` — per-user attribution of
+  which user mounted which volume, timestamped by the subkey's last-write. Validated Tier-1
+  on the NIST CFReDS informant `NTUSER.DAT`: mounted `{a2f2048e-…}` (drive `E:`, label
+  `IAMAN $_@` via the MBR bridge) at 2015-03-24 21:02:33 UTC.
+
 ## [peripheral-core 0.5.0] — 2026-07-12
 
 ### Added — `peripheral-core` (reader)
