@@ -6,6 +6,17 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [peripheral-core 0.4.0] — 2026-07-12
+
+### Added — `peripheral-core` (reader)
+
+- `volume_info` module: `parse_volume_info_cache` decodes the Windows Search
+  `VolumeInfoCache` (`SOFTWARE\Microsoft\Windows Search\VolumeInfoCache\<X:>`) into
+  `VolumeLabel { drive_letter, volume_label, source }` records — the human-readable label
+  a user gave a removable volume, which corroborates the device that mounted that drive
+  letter. Validated Tier-1 against the NIST CFReDS Data-Leakage SOFTWARE hive (drive `E:`
+  label `IAMAN $_@`, matching the published answer key).
+
 ## [peripheral-core 0.3.1] — 2026-07-12
 
 ### Fixed — `peripheral-core`
