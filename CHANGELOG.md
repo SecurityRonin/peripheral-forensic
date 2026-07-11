@@ -6,6 +6,19 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [peripheral-core 0.3.1] — 2026-07-12
+
+### Fixed — `peripheral-core`
+
+- Windows 7 device-property FILETIMEs are now decoded. The registry reader previously
+  returned `None` for `first_install` / `last_arrival` / `last_removal` on Windows 7
+  hives because Win7 stores the property FILETIME under an 8-hex subkey name
+  (`00000064`) in a nested `00000000` leaf's `Data` value, rather than the Windows 8+/
+  Server 2012 layout (`0064` default value). `read_filetime` now matches the property by
+  numeric value (any zero-padding) and tries both value locations. Validated Tier-1 on
+  the NIST CFReDS Data-Leakage SYSTEM hive against the published answer key; the
+  Server 2012 R2 layout still decodes (no regression).
+
 ## [peripheral-core 0.3.0] — 2026-07-11
 
 ### Added — `peripheral-core` (reader)
