@@ -102,3 +102,26 @@ fn win7_usbstor_device_property_filetimes_are_decoded() {
         "RM#2 first-install = 2015-03-24 13:58:33 UTC (NIST answer key)"
     );
 }
+
+#[test]
+fn cfreds_volume_info_cache_recovers_the_usb_volume_label() {
+    // Tier-1 on the NIST CFReDS Data-Leakage SOFTWARE hive (Windows 7). Ground truth =
+    // the NIST answer key: the SanDisk RM#2 stick's volume label is "IAMAN $_@", cached
+    // in VolumeInfoCache against drive E:.
+    let Ok(path) = std::env::var("PERIPHERAL_TEST_WIN7_SOFTWARE") else {
+        eprintln!(
+            "SKIP: set PERIPHERAL_TEST_WIN7_SOFTWARE to the CFReDS Data-Leakage SOFTWARE hive"
+        );
+        return;
+    };
+    let hive = Hive::from_path(Path::new(&path)).expect("valid Win7 SOFTWARE hive");
+    let labels = peripheral_core::volume_info::parse_volume_info_cache(&hive, "SOFTWARE");
+    let e = labels
+        .iter()
+        .find(|l| l.drive_letter == 'E')
+        .expect("drive E: present in VolumeInfoCache");
+    assert_eq!(
+        e.volume_label, "IAMAN $_@",
+        "the NIST answer-key USB volume label"
+    );
+}

@@ -22,6 +22,7 @@
 pub mod linux_syslog;
 pub mod registry;
 pub mod setupapi;
+pub mod volume_info;
 
 /// The physical/logical bus a peripheral attached through.
 ///
