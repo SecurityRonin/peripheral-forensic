@@ -6,6 +6,16 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [peripheral-core 0.7.0] — 2026-07-12
+
+### Added — `peripheral-core` (reader)
+
+- `emdmgmt` module: `parse_emdmgmt` decodes the `SOFTWARE` `EMDMgmt` (ReadyBoost) cache into
+  `EmdVolume { volume_label, volume_serial, source }` — a removable volume's label and its
+  4-byte volume serial (the serial a Shell Link's `DriveSerialNumber` stores), surviving
+  device removal. Validated Tier-1 on the NIST CFReDS SOFTWARE hive: `Authorized USB`/
+  1551191358 and `IAMAN $_@`/2657770370 (the answer-key labels).
+
 ## [peripheral-core 0.6.0] — 2026-07-12
 
 ### Added — `peripheral-core` (reader)
