@@ -30,6 +30,23 @@ is a **Tier-3 coverage fixture**: the decoder's *correctness* is validated at
 oracle (env-gated on `PERIPHERAL_TEST_SYSTEM_HIVE`). `winreg-core` reads this
 hive; regipy's stricter traversal does not, which is why it is coverage-only.
 
+### `synthetic_emdmgmt.hive` — SYNTHETIC (generated, `✓` confirmed)
+
+An 8 KB in-memory REGF `SOFTWARE` hive (md5 `f5f2515237d82dde55d764615014b575`)
+covering the `EMDMgmt` volume label+serial reader in CI:
+`Microsoft\Windows NT\CurrentVersion\EMDMgmt\` with one labelled volume subkey
+(`PFX__TESTUSB_1234567890` → label `TESTUSB`, serial `1234567890`) and a
+`NoSerialHere` subkey (no trailing decimal serial → skipped).
+
+**Generator** (verbatim): `winreg-testutil`'s `TestHiveBuilder`, `add_key` for the two
+EMDMgmt subkeys (the record is the subkey NAME; no values needed). **Tier-3 coverage
+fixture**: the same decode is validated **Tier-1** by
+`cfreds_emdmgmt_recovers_the_usb_volume_labels_and_serials` in
+`core/tests/registry_real_hive.rs` against the real **NIST CFReDS Data-Leakage** SOFTWARE
+hive, where EMDMgmt caches both SanDisk sticks — `Authorized USB` (serial 1551191358) and
+`IAMAN $_@` (serial 2657770370), the NIST answer-key labels
+(env var `PERIPHERAL_TEST_WIN7_SOFTWARE`).
+
 ### `synthetic_mountpoints2.hive` — SYNTHETIC (generated, `✓` confirmed)
 
 An 8 KB in-memory REGF `NTUSER.DAT` hive (md5 `af350f7c7e0597699058b757328b8963`)

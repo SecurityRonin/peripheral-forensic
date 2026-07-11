@@ -31,8 +31,6 @@ pub struct EmdVolume {
 /// panicked on. `file` is recorded as each record's [`Provenance`] file.
 #[must_use]
 pub fn parse_emdmgmt(hive: &Hive<Cursor<Vec<u8>>>, file: &str) -> Vec<EmdVolume> {
-    return Vec::new(); // RED stub
-    #[allow(unreachable_code)]
     let Ok(Some(emd)) = hive.open_key(EMD_PATH) else {
         return Vec::new();
     };
@@ -100,6 +98,8 @@ mod tests {
             parse_emd_name("PFX__My__Disk_42"),
             Some(("Disk".to_string(), 42))
         );
+        // A name with a serial but no `__` boundary → the whole remainder is the label.
+        assert_eq!(parse_emd_name("Label_42"), Some(("Label".to_string(), 42)));
         // No trailing decimal serial → None, no panic.
         assert_eq!(parse_emd_name("NoSerialHere"), None);
         assert_eq!(parse_emd_name("Prefix__Label_notanumber"), None);
