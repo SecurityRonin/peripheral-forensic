@@ -64,3 +64,41 @@ fn mounted_devices_joins_drive_letter_d_to_the_cdrom_device() {
         .expect("CD-ROM device instance present in the Szechuan SYSTEM hive");
     assert_eq!(cdrom.drive_letter, Some('D'));
 }
+
+#[test]
+fn win7_usbstor_device_property_filetimes_are_decoded() {
+    // Tier-1 on the NIST CFReDS "Data Leakage Case" SYSTEM hive (Windows 7), whose
+    // device-property FILETIMEs use the older layout: 8-hex property names
+    // (`00000064`) with the FILETIME in the `Data` value of a nested `00000000` leaf,
+    // NOT the modern `0064`-default-value layout. Ground truth = the NIST answer key:
+    // SanDisk Cruzer Fit RM#1 (serial 4C530012450531101593) first connected
+    // 2015-03-23 18:31:11 UTC; RM#2 (4C530012550531106501) 2015-03-24 13:58:33 UTC.
+    let Ok(path) = std::env::var("PERIPHERAL_TEST_WIN7_SYSTEM") else {
+        eprintln!("SKIP: set PERIPHERAL_TEST_WIN7_SYSTEM to the CFReDS Data-Leakage SYSTEM hive");
+        return;
+    };
+    let hive = Hive::from_path(Path::new(&path)).expect("valid Win7 SYSTEM hive");
+    let conns = parse_registry(&hive, "SYSTEM");
+
+    let by_serial = |serial: &str| {
+        conns
+            .iter()
+            .find(|c| {
+                c.device_instance_id.starts_with("USBSTOR") && c.device_instance_id.contains(serial)
+            })
+            .unwrap_or_else(|| panic!("USBSTOR device {serial} present in the CFReDS hive"))
+    };
+
+    let rm1 = by_serial("4C530012450531101593");
+    assert_eq!(
+        rm1.first_install.as_ref().map(|s| s.value),
+        Some(1_427_135_471),
+        "RM#1 first-install = 2015-03-23 18:31:11 UTC (NIST answer key)"
+    );
+    let rm2 = by_serial("4C530012550531106501");
+    assert_eq!(
+        rm2.first_install.as_ref().map(|s| s.value),
+        Some(1_427_205_513),
+        "RM#2 first-install = 2015-03-24 13:58:33 UTC (NIST answer key)"
+    );
+}
