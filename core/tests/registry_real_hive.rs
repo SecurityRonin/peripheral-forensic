@@ -101,6 +101,13 @@ fn win7_usbstor_device_property_filetimes_are_decoded() {
         Some(1_427_205_513),
         "RM#2 first-install = 2015-03-24 13:58:33 UTC (NIST answer key)"
     );
+    // MTP negative control: this hive has no WUDFWpdMtp device (all its USB endpoints are
+    // mass storage / HID / hubs), so nothing must be misclassified as Bus::Mtp — the
+    // real-data guard on the MTP detection rule.
+    assert!(
+        conns.iter().all(|c| c.bus != Bus::Mtp),
+        "no device in the CFReDS hive is MTP; the rule must not false-positive"
+    );
 }
 
 #[test]
@@ -185,7 +192,9 @@ fn cfreds_emdmgmt_recovers_the_usb_volume_labels_and_serials() {
     // Tier-1 on the NIST CFReDS Data-Leakage SOFTWARE hive (Windows 7). EMDMgmt caches the
     // two SanDisk sticks' labels + 4-byte volume serials (the NIST answer-key labels).
     let Ok(path) = std::env::var("PERIPHERAL_TEST_WIN7_SOFTWARE") else {
-        eprintln!("SKIP: set PERIPHERAL_TEST_WIN7_SOFTWARE to the CFReDS Data-Leakage SOFTWARE hive");
+        eprintln!(
+            "SKIP: set PERIPHERAL_TEST_WIN7_SOFTWARE to the CFReDS Data-Leakage SOFTWARE hive"
+        );
         return;
     };
     let hive = Hive::from_path(Path::new(&path)).expect("valid Win7 SOFTWARE hive");

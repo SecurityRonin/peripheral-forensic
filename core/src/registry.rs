@@ -325,6 +325,20 @@ mod tests {
     }
 
     #[test]
+    fn mtp_service_reclassifies_the_bus_to_mtp() {
+        // A device whose Enum\USB `Service` is the MTP class driver (`WUDFWpdMtp`) is a
+        // portable/media endpoint (phone/tablet/camera), not mass storage — surfaced as
+        // Bus::Mtp even though it enumerates under the USB class. Documented rule; a device
+        // with any other service keeps its enumerator-derived bus.
+        assert_eq!(mtp_override(Some("WUDFWpdMtp"), Bus::Usb), Bus::Mtp);
+        assert_eq!(mtp_override(Some("wudfwpdmtp"), Bus::Usb), Bus::Mtp); // case-insensitive
+        assert_eq!(mtp_override(Some("USBSTOR"), Bus::Usb), Bus::Usb);
+        assert_eq!(mtp_override(None, Bus::Usb), Bus::Usb);
+        // It never overrides a non-USB bus (an MTP service only appears under USB).
+        assert_eq!(mtp_override(Some("WUDFWpdMtp"), Bus::ScsiSas), Bus::ScsiSas);
+    }
+
+    #[test]
     fn parse_vid_pid_handles_absent_and_malformed() {
         assert_eq!(
             parse_vid_pid("VID_0781&PID_5583"),
