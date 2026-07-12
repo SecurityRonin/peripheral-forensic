@@ -6,6 +6,17 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [peripheral-core 0.8.0] — 2026-07-12
+
+### Added — `peripheral-core` (reader)
+
+- MTP/PTP portable-device detection: `parse_registry` reclassifies a USB-enumerated device
+  as `Bus::Mtp` when its `Service` value is the MTP class driver `WUDFWpdMtp` — surfacing
+  phones/tablets/cameras that speak MTP/PTP and never appear under `USBSTOR` (a common
+  data-exfiltration blind spot). A documented detection rule; validated by a unit test and a
+  real-data negative control on the DFIRMadness/CFReDS hives (mass-storage/HID devices are
+  not misflagged).
+
 ## [peripheral-core 0.7.0] — 2026-07-12
 
 ### Added — `peripheral-core` (reader)
