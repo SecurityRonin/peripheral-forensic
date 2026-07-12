@@ -143,6 +143,21 @@ fn device_path_instance(raw: &[u8]) -> Option<String> {
 }
 
 /// Build one [`DeviceConnection`] from a decoded device-instance key.
+/// The MTP class-driver service name; a device with this `Service` is a portable/media
+/// endpoint (phone/tablet/camera) speaking MTP/PTP, not mass storage.
+const MTP_SERVICE: &str = "WUDFWpdMtp";
+
+/// Reclassify a USB-enumerated device as [`Bus::Mtp`] when its `Service` is the MTP class
+/// driver (`WUDFWpdMtp`, case-insensitive). Only a USB-bus device is overridden — the MTP
+/// service appears under `Enum\USB`; any other service or bus is returned unchanged.
+fn mtp_override(service: Option<&str>, bus: Bus) -> Bus {
+    if bus == Bus::Usb && service.is_some_and(|s| s.eq_ignore_ascii_case(MTP_SERVICE)) {
+        Bus::Mtp
+    } else {
+        bus
+    }
+}
+
 fn build_connection(
     inst: &Key<'_>,
     class: &str,
@@ -153,6 +168,9 @@ fn build_connection(
     key_path: String,
 ) -> DeviceConnection {
     let (vid, pid) = parse_vid_pid(ven_name);
+    // A phone/tablet/camera speaking MTP enumerates under USB but is not mass storage; its
+    // Service value flags it (documented WUDFWpdMtp), so reclassify the bus.
+    let bus = mtp_override(value_string(inst, "Service").as_deref(), bus);
     // Windows synthesizes an instance id whose 2nd character is `&` when the device
     // exposed no real iSerial — attribution is then weaker.
     let serial_is_os_generated = inst_name.as_bytes().get(1) == Some(&b'&');
