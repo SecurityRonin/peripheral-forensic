@@ -16,13 +16,27 @@ use winreg_core::key::{filetime_to_datetime, Key};
 /// `FILETIME`s (`0064`/`0065`/`0066`/`0067`).
 const TS_GUID: &str = "{83da6326-97a6-4088-9453-a1923f573b29}";
 
-/// The device enumerator classes that carry USB / removable mass-storage history,
-/// paired with the bus each implies. `SCSI` is included because virtual and UASP/USB-3
-/// disks enumerate there rather than under `USBSTOR`.
-const ENUM_CLASSES: [(&str, Bus); 3] = [
+/// The device-enumerator classes walked for external / hot-pluggable peripheral history,
+/// paired with the bus each implies. `SCSI` is included because virtual and UASP/USB-3 disks
+/// enumerate there rather than under `USBSTOR`. `THUNDERBOLT`/`1394`/`ESATA`/`SDBUS`/
+/// `EXPRESSCARD` carry the same `{83da6326…}` property-store connection timestamps (the decoder
+/// is bus-agnostic), so a Thunderbolt or FireWire attachment surfaces as a bus-mastering
+/// **DMA-capable** connection.
+///
+/// Internal-dominated enumerators (`PCI`/`PCIE`, `NVME`) are deliberately NOT walked: they list
+/// every internal device (GPU, NIC, chipset, boot SSD), which would flood the timeline and raise
+/// false DMA findings on built-in hardware. A Thunderbolt-*tunnelled* PCIe device therefore
+/// appears via its `THUNDERBOLT` attachment, not its inner `PCI` node. `BTHENUM` (Bluetooth) is
+/// owned by `bluetooth-forensic` (the `BTHPORT` pairing artifact), not walked here.
+const ENUM_CLASSES: [(&str, Bus); 8] = [
     ("USBSTOR", Bus::Usb),
     ("USB", Bus::Usb),
     ("SCSI", Bus::ScsiSas),
+    ("THUNDERBOLT", Bus::Thunderbolt),
+    ("1394", Bus::FireWire),
+    ("ESATA", Bus::Esata),
+    ("SDBUS", Bus::SdMmc),
+    ("EXPRESSCARD", Bus::ExpressCard),
 ];
 
 /// Both control sets are walked; the same device may appear in each.
