@@ -292,6 +292,23 @@ mod tests {
     /// with three device instances covering every branch. Decoder *correctness* is
     /// validated at Tier-1 by `vmware_scsi_disk_matches_regipy_ground_truth` against the
     /// real hive + regipy oracle; this test exercises the walker deterministically in CI.
+    /// Thunderbolt devices enumerate through the standard PnP framework, carrying the same
+    /// `{83da6326…}` property-store FILETIMEs USB/SCSI do — so walking `Enum\THUNDERBOLT` with
+    /// the existing decoder yields a `Bus::Thunderbolt` (DMA-capable) connection. Synthetic
+    /// coverage fixture (Tier-3); the property-store decode itself is Tier-1-validated on the
+    /// real Szechuan hive. See `tests/data/README.md` for the generator recipe.
+    #[test]
+    fn thunderbolt_device_is_walked_as_dma_capable() {
+        const HIVE: &[u8] = include_bytes!("../../tests/data/synthetic_thunderbolt.hive");
+        let hive = Hive::from_bytes(HIVE.to_vec()).expect("valid synthetic REGF");
+        let tb = parse_registry(&hive, "SYSTEM")
+            .into_iter()
+            .find(|c| c.bus == Bus::Thunderbolt)
+            .expect("an Enum\\THUNDERBOLT device should be walked");
+        assert!(tb.bus.is_dma_capable());
+        assert_eq!(tb.friendly_name.as_deref(), Some("CalDigit TS4 Dock"));
+    }
+
     #[test]
     fn synthetic_hive_exercises_every_branch() {
         const HIVE: &[u8] = include_bytes!("../../tests/data/synthetic_usb_system.hive");

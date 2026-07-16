@@ -172,3 +172,19 @@ Collector) `syslog` from the **HAL Linux DFIR challenge** (issen corpus:
 test `core/tests/linux_syslog_real.rs` (`LINUX_SYSLOG_PATH`) confirms it extracts the
 real VirtualBox USB Tablet (`idVendor=80ee, idProduct=0021`, "USB Tablet") and root
 hubs (`idVendor=1d6b`). The archive is large and lives in the issen corpus, not here.
+
+### `synthetic_thunderbolt.hive` — SYNTHETIC (generated, `✓` confirmed)
+
+An 8 KB in-memory REGF `SYSTEM` hive (md5 `52bfdb21c9e1472d4205e30f1eb775de`) with one `Enum\THUNDERBOLT`
+device instance (`VEN_TB&DEV_DOCK\TB0001`, `FriendlyName` "CalDigit TS4 Dock",
+a `0066` last-arrival FILETIME under `Properties\{83da6326-97a6-4088-9453-a1923f573b29}`),
+exercising the `Enum\THUNDERBOLT` branch of the `registry` walker — a Thunderbolt
+connection is a bus-mastering **DMA-capable** device (`PERIPHERAL-DMA-CAPABLE-DEVICE`).
+
+**Generator** (verbatim): `winreg-testutil`'s `TestHiveBuilder` — `add_key` for the
+`THUNDERBOLT\VEN_TB&DEV_DOCK\TB0001` instance + its `Properties\{83da6326…}\0066` prop
+subkey; `add_value` for `FriendlyName` (REG_SZ, UTF-16LE) and the `0066` default value
+(REG_BINARY, 8-byte LE FILETIME = `(unix + 11_644_473_600) * 10_000_000`). **Tier-3
+coverage fixture**: the property-store decode is bus-agnostic and validated **Tier-1** by
+`vmware_scsi_disk_matches_regipy_ground_truth` against the real Szechuan `SYSTEM` hive +
+regipy oracle; this fixture only exercises the added `THUNDERBOLT` enum class.
