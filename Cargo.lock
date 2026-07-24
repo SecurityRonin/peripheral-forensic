@@ -190,7 +190,7 @@ dependencies = [
 
 [[package]]
 name = "peripheral-core"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "winreg-core",
 ]

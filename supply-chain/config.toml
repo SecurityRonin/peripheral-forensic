@@ -99,7 +99,7 @@ version = "7.6.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.peripheral-core]]
-version = "0.8.0"
+version = "0.8.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.peripheral-forensic]]
