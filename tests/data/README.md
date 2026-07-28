@@ -213,3 +213,48 @@ follow libyal `libfwsi` (root sort+GUID at offset 4; `0x2F` volume name at offse
 correctness of the *shell-item decode* is validated **Tier-1** by `shellitem`'s own
 libfwsi-referenced tests + fuzzing; this fixture exercises the `BagMRU` tree walk and
 drive-letter surfacing over `winreg-core`.
+
+## Real-hive shellbag differential (env-gated, NOT committed) — REAL-ext ✓ · **T1**
+
+`core/tests/shellbag_oracle_diff.rs` reconciles the `BagMRU` walk against an
+**independent** oracle — regipy + libyal **pyfwsi** (the reference `libfwsi`
+shell-item parser), which shares no code with our `shellitem` primitive — on a
+**real Windows user hive**. It is env-gated and SKIPs cleanly when either the hive
+or the oracle is absent (no false pass). Nothing here is committed: the multi-MB
+hive is extracted on demand to `/tmp`, and the oracle is a Python tool.
+
+**Reference artifact:** the DFIR Madness "Stolen Szechuan Sauce" **Case 001**
+`ricksanchez` `UsrClass.dat` (Windows 10 per-user CLSID hive).
+
+| Item | Value |
+|---|---|
+| Source | James Smith, dfirmadness.com — <https://dfirmadness.com/the-stolen-szechuan-sauce/> |
+| Carried in | `DESKTOP-E01.zip` (MD5 `71C5C3509331F472ABCDF81EB6EFFF07`), NTFS partition, `\Users\ricksanchez\AppData\Local\Microsoft\Windows\UsrClass.dat` |
+| Extracted file MD5 | `5e28f59f5414e754b4e6e4868fa9d7a0` (3 407 872 bytes, `regf`) |
+| Redistribution | dfirmadness.com — educational/research; **hive not committed** (extracted on demand) |
+| Ground truth (oracle) | `BagMRU` references drives **Z:** (`My Computer\Z:\`) and **E:** (`E:\`, and `E:\FTK Imager` browsed on it). E: is a **delegate-wrapped** volume shell item. |
+
+**Extract (canonical, matches the catalog MD5) + run:**
+
+```sh
+# from the issen orchestration repo (owns the E01 corpus + the carve example):
+unzip -o -j dfirmadness-szechuan-sauce/DESKTOP-E01.zip '*.E0*' -d /tmp/desktop-e01
+E01=/tmp/desktop-e01/20200918_0417_DESKTOP-SDN1RPT.E01
+mkdir -p /tmp/case001-hives
+cargo run --release --example extract_usrclass -- "$E01" /tmp/case001-hives   # writes UsrClass-<user>.dat
+
+# oracle deps, once:  pip install 'regipy[full]'   (pulls pyfwsi / libfwsi)
+SHELLBAG_TEST_HIVE=/tmp/case001-hives/UsrClass-ricksanchez.dat \
+  cargo test -p peripheral-core --test shellbag_oracle_diff -- --nocapture
+```
+
+**Oracle:** `core/tests/oracle/shellbags_oracle.py` (bundled) decodes the hive's
+`BagMRU` with regipy's NTUSER + UsrClass shellbags plugins (pyfwsi under the hood)
+and emits TSV drive-letter rows. **Result:** the walk's **Z:** is confirmed against
+libfwsi (soundness + path token); **E:** is a documented Tier-1 gap (delegate item
+decoding, `shellitem`) — see `docs/validation.md`.
+
+Any real Windows `NTUSER.DAT` / `UsrClass.dat` works as `SHELLBAG_TEST_HIVE`; an
+empty-`BagMRU` NTUSER (both oracle and reader yield nothing) reconciles trivially.
+
+Cross-reference: `issen/docs/test-data-catalog.md` §A3/§A3b (the machine index).
