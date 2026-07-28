@@ -23,15 +23,85 @@ pub struct UsbIdDb {
 
 impl UsbIdDb {
     /// Parse the linux-usb.org `usb.ids` text format (operator-supplied at runtime).
+    ///
+    /// Lenient and panic-free: comment (`#`) and blank lines are skipped, a vendor
+    /// is `VVVV␠␠Name` at column 0, a product is `␉PPPP␠␠Name` (one tab), interface
+    /// lines (two tabs) and non-vendor sections (`C`, `AT`, `HID`, `VT`, …) are
+    /// skipped, and a product only attaches to the vendor currently in scope.
     #[must_use]
-    pub fn parse(_text: &str) -> Self {
-        Self::default() // stub — RED
+    pub fn parse(text: &str) -> Self {
+        let mut db = Self::default();
+        let mut current_vendor: Option<u16> = None;
+        for line in text.lines() {
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            if let Some(rest) = line.strip_prefix('\t') {
+                // one leading tab = product; two = interface line (skip).
+                if rest.starts_with('\t') {
+                    continue;
+                }
+                if let (Some(vid), Some((pid, name))) = (current_vendor, parse_id_line(rest)) {
+                    db.products.insert((vid, pid), name.to_owned());
+                }
+                continue;
+            }
+            // Column-0 line: a vendor (4 hex + two spaces) or a section header.
+            if let Some((vid, name)) = parse_id_line(line) {
+                db.vendors.insert(vid, name.to_owned());
+                current_vendor = Some(vid);
+            } else {
+                current_vendor = None; // section header ends the vendor's scope.
+            }
+        }
+        db
     }
 
-    /// The built-in, hand-authored table of common forensic-relevant vendors.
+    /// The built-in, hand-authored table of common forensic-relevant USB vendors.
+    ///
+    /// Individual `VID → name` facts (not the copyrightable `usb.ids` compilation);
+    /// zero-config coverage of the storage/controller vendors seen most in casework.
+    /// For full coverage, load `usb.ids` at runtime via [`parse`](Self::parse).
     #[must_use]
     pub fn common() -> Self {
-        Self::default() // stub — RED
+        const COMMON: &[(u16, &str)] = &[
+            (0x0781, "SanDisk Corp."),
+            (0x0951, "Kingston Technology"),
+            (
+                0x090c,
+                "Silicon Motion, Inc. - Taiwan (formerly Feiya Technology Corp.)",
+            ),
+            (0x04e8, "Samsung Electronics Co., Ltd"),
+            (0x0930, "Toshiba Corp."),
+            (0x13fe, "Phison Electronics Corp."),
+            (0x154b, "PNY"),
+            (0x18a5, "Verbatim, Ltd"),
+            (0x8564, "Transcend Information, Inc."),
+            (0x058f, "Alcor Micro Corp."),
+            (0x1b1c, "Corsair"),
+            (0x0483, "STMicroelectronics"),
+            (0x1f75, "Innostor Technology Corporation"),
+            (0x1516, "CompUSA"),
+            (0x048d, "Integrated Technology Express, Inc."),
+            (0x174c, "ASMedia Technology Inc."),
+            (
+                0x152d,
+                "JMicron Technology Corp. / JMicron USA Technology Corp.",
+            ),
+            (0x14cd, "Super Top"),
+            (0x0bda, "Realtek Semiconductor Corp."),
+            (0x05dc, "Lexar Media, Inc."),
+            (0x0409, "NEC Corp."),
+            (0x1058, "Western Digital Technologies, Inc."),
+            (0x059f, "LaCie, Ltd"),
+            (0x04b4, "Cypress Semiconductor Corp."),
+            (0x067b, "Prolific Technology, Inc."),
+        ];
+        let mut db = Self::default();
+        for &(vid, name) in COMMON {
+            db.vendors.insert(vid, name.to_owned());
+        }
+        db
     }
 
     /// Resolve a vendor id to its name, if known.
@@ -57,6 +127,18 @@ impl UsbIdDb {
     pub fn is_empty(&self) -> bool {
         self.vendors.is_empty()
     }
+}
+
+/// Parse a `VVVV␠␠Name` id line into `(id, name)`. Panic-free (no slice indexing);
+/// returns `None` unless the first four chars are hex followed by exactly two spaces
+/// and a non-empty name — which cleanly rejects section headers (`C 00`, `VT 0100`).
+fn parse_id_line(s: &str) -> Option<(u16, &str)> {
+    let id = u16::from_str_radix(s.get(0..4)?, 16).ok()?;
+    if s.get(4..6)? != "  " {
+        return None;
+    }
+    let name = s.get(6..)?.trim_end();
+    (!name.is_empty()).then_some((id, name))
 }
 
 #[cfg(test)]
