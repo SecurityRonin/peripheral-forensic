@@ -28,6 +28,18 @@
 //! termination on a crafted cyclic hive (a valid REGF hive is a tree).
 
 use crate::Provenance;
+use shellitem::{parse_idlist, reconstruct_path, ShellItem, ShellItemKind};
+use std::collections::HashSet;
+use std::io::Cursor;
+use winreg_core::hive::Hive;
+use winreg_core::key::Key;
+
+/// The two `BagMRU` roots: `NTUSER.DAT` (`Software\...\Shell\BagMRU`) and the
+/// per-user `UsrClass.dat` (`Local Settings\Software\...\Shell\BagMRU`).
+const BAGMRU_PATHS: &[&str] = &[
+    "Software\\Microsoft\\Windows\\Shell\\BagMRU",
+    "Local Settings\\Software\\Microsoft\\Windows\\Shell\\BagMRU",
+];
 
 /// One browsed folder from a `BagMRU` tree that references a drive-letter volume.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -49,12 +61,93 @@ pub struct ShellbagEntry {
 /// (`NTUSER.DAT` or `UsrClass.dat`). `file` is recorded on each record's
 /// [`Provenance`]. Total over a valid hive — never panics.
 #[must_use]
-pub fn parse_shellbags(
-    hive: &winreg_core::hive::Hive<std::io::Cursor<Vec<u8>>>,
+pub fn parse_shellbags(hive: &Hive<Cursor<Vec<u8>>>, file: &str) -> Vec<ShellbagEntry> {
+    let mut out = Vec::new();
+    for &root_path in BAGMRU_PATHS {
+        let Ok(Some(root)) = hive.open_key(root_path) else {
+            continue;
+        };
+        walk(root, root_path, file, &mut out);
+    }
+    out
+}
+
+/// Iterative depth-first walk of one `BagMRU` tree. Each stack frame carries the
+/// node key, the shell items accumulated from the root to it, and its key path.
+/// The shell-item bytes for a child slot live in the **parent** key's value named
+/// by the child index, so a child's full path is the parent's items plus that
+/// slot's item. A visited-offset set guarantees termination if a crafted hive is
+/// cyclic (a valid REGF hive is a tree, so it never revisits).
+fn walk(root: Key<'_>, root_path: &str, file: &str, out: &mut Vec<ShellbagEntry>) {
+    let mut visited: HashSet<u32> = HashSet::new();
+    let mut stack: Vec<(Key<'_>, Vec<ShellItem>, String)> =
+        vec![(root, Vec::new(), root_path.to_string())];
+    while let Some((key, parent_items, key_path)) = stack.pop() {
+        if !visited.insert(key.offset().0) {
+            continue; // cov:unreachable: only a crafted cyclic hive revisits a cell; a valid tree hive never does
+        }
+        let Ok(subkeys) = key.subkeys() else {
+            continue; // cov:unreachable: subkeys() only errors on hive corruption
+        };
+        for sub in subkeys {
+            let name = sub.name();
+            // BagMRU child slots are numeric ("0", "1", …); skip any non-slot
+            // sibling (e.g. a stray key that is not an ITEMIDLIST index).
+            if name.parse::<u32>().is_err() {
+                continue;
+            }
+            let bytes = key
+                .value(&name)
+                .ok()
+                .flatten()
+                .and_then(|v| v.raw_data().ok())
+                .unwrap_or_default();
+            let mut items = parent_items.clone();
+            items.extend(parse_idlist(&bytes));
+            let sub_path = format!("{key_path}\\{name}");
+            if let Some(entry) = volume_entry(&items, &sub, &sub_path, file) {
+                out.push(entry);
+            }
+            stack.push((sub, items, sub_path));
+        }
+    }
+}
+
+/// Build a [`ShellbagEntry`] for a node whose reconstructed path references a
+/// drive-letter volume; `None` when no [`ShellItemKind::Volume`] item is present
+/// (a non-volume node such as `My Computer` or `Control Panel`).
+fn volume_entry(
+    items: &[ShellItem],
+    key: &Key<'_>,
+    key_path: &str,
     file: &str,
-) -> Vec<ShellbagEntry> {
-    let _ = (hive, file);
-    Vec::new()
+) -> Option<ShellbagEntry> {
+    let volume = items.iter().find(|i| i.kind == ShellItemKind::Volume)?;
+    Some(ShellbagEntry {
+        path: reconstruct_path(items),
+        drive_letter: drive_letter(volume),
+        last_write: last_written_epoch(key),
+        source: Provenance {
+            file: file.to_string(),
+            line: 0,
+            key_path: Some(key_path.to_string()),
+        },
+    })
+}
+
+/// A key's last-written time as epoch seconds UTC; `None` when the hive recorded
+/// none.
+fn last_written_epoch(key: &Key<'_>) -> Option<i64> {
+    Some(key.last_written()?.as_second())
+}
+
+/// The upper-cased drive letter of a volume shell item whose name is a
+/// `X:`-prefixed drive string (`E:\` → `E`); `None` for a nameless (`0x2e` GUID)
+/// volume or any non-`letter:` name.
+fn drive_letter(volume: &ShellItem) -> Option<char> {
+    let mut chars = volume.name.as_deref()?.chars();
+    let letter = chars.next()?;
+    (letter.is_ascii_alphabetic() && chars.next() == Some(':')).then(|| letter.to_ascii_uppercase())
 }
 
 #[cfg(test)]
