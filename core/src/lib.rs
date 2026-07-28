@@ -25,6 +25,7 @@ pub mod mounted_volumes;
 pub mod mountpoints2;
 pub mod registry;
 pub mod setupapi;
+pub mod usb_ids;
 pub mod volume_info;
 
 /// The physical/logical bus a peripheral attached through.
@@ -233,6 +234,29 @@ pub struct DeviceConnection {
     // ── Provenance ───────────────────────────────────────────────────────────
     /// Where this record came from (source file + 1-based line).
     pub source: Provenance,
+}
+
+impl DeviceConnection {
+    /// Resolve the vendor **name** for this connection's [`vid`](Self::vid) via a
+    /// [`UsbIdDb`](crate::usb_ids::UsbIdDb).
+    ///
+    /// **Non-authoritative enrichment.** The raw numeric `vid` is the evidence;
+    /// this is a lookup convenience and is `None` when the vid is absent or unknown.
+    #[must_use]
+    pub fn vendor_name<'a>(&self, db: &'a crate::usb_ids::UsbIdDb) -> Option<&'a str> {
+        self.vid.and_then(|v| db.vendor_name(v))
+    }
+
+    /// Resolve the product **name** for this connection's `vid`/`pid` via a
+    /// [`UsbIdDb`](crate::usb_ids::UsbIdDb). Non-authoritative (see
+    /// [`vendor_name`](Self::vendor_name)); `None` unless both ids are present and known.
+    #[must_use]
+    pub fn product_name<'a>(&self, db: &'a crate::usb_ids::UsbIdDb) -> Option<&'a str> {
+        match (self.vid, self.pid) {
+            (Some(v), Some(p)) => db.product_name(v, p),
+            _ => None,
+        }
+    }
 }
 
 /// Where a [`DeviceConnection`] was decoded from.
