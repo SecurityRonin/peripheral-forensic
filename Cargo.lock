@@ -197,6 +197,7 @@ name = "peripheral-core"
 version = "0.8.1"
 dependencies = [
  "forensicnomicon-core 1.4.0",
+ "shellitem",
  "winreg-core",
 ]
 
@@ -269,6 +270,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.118",
+]
+
+[[package]]
+name = "shellitem"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c653c75a2537ebf2e55dafee5ac38b91f5c970d98b517eb8f2f06af17c0e4c5"
+dependencies = [
+ "forensicnomicon",
 ]
 
 [[package]]

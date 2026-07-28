@@ -25,6 +25,7 @@ pub mod mounted_volumes;
 pub mod mountpoints2;
 pub mod registry;
 pub mod setupapi;
+pub mod shellbag;
 pub mod usb_ids;
 pub mod volume_info;
 

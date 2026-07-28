@@ -188,3 +188,28 @@ subkey; `add_value` for `FriendlyName` (REG_SZ, UTF-16LE) and the `0066` default
 coverage fixture**: the property-store decode is bus-agnostic and validated **Tier-1** by
 `vmware_scsi_disk_matches_regipy_ground_truth` against the real Szechuan `SYSTEM` hive +
 regipy oracle; this fixture only exercises the added `THUNDERBOLT` enum class.
+
+### `synthetic_bagmru.hive` — SYNTHETIC (generated, `✓` confirmed)
+
+An 8 KB in-memory REGF `NTUSER.DAT` hive (md5 `6a45688df5d8afe0d21508a127d571c4`)
+covering the `shellbag` `BagMRU` reader deterministically in CI. Its tree is
+`Software\Microsoft\Windows\Shell\BagMRU` → `0` (My Computer) → `0` (`E:\`) → `0`
+(`photos`), with each slot's shell-item bytes stored in its **parent** key's
+`REG_BINARY` value named by the child index (`"0"`), plus a `MRUListEx` value and a
+non-numeric `Foo` sibling subkey the walker must skip. All key last-writes are epoch
+`1_600_000_000` (2020-09-13 12:26:40 UTC).
+
+The three slot values are **genuine libfwsi shell items** (not a synthetic guess),
+independently validated by the fleet's fuzzed `shellitem` primitive:
+- root `0x1F` — My-Computer GUID `20D04FE0-3AEA-1069-A2D8-08002B30309D`;
+- volume `0x2F` — a 20-byte ASCII drive-letter name `E:\`;
+- file-entry `0x31` — a directory with the short name `photos`.
+
+**Generator** (verbatim): `winreg-testutil`'s `TestHiveBuilder` (`with_key_times` for
+the FILETIME, `add_key` for the four BagMRU nodes + the `Foo` sibling, `add_value`
+REG_BINARY for the three slot shell items + `MRUListEx`). The shell-item byte layouts
+follow libyal `libfwsi` (root sort+GUID at offset 4; `0x2F` volume name at offset 3;
+`0x31` size@4/modified@8/attrs@12/ASCII-short-name@14). **Tier-3 coverage fixture**:
+correctness of the *shell-item decode* is validated **Tier-1** by `shellitem`'s own
+libfwsi-referenced tests + fuzzing; this fixture exercises the `BagMRU` tree walk and
+drive-letter surfacing over `winreg-core`.

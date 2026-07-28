@@ -14,3 +14,4 @@
 !/tests/data/synthetic_mountpoints2.hive
 !/tests/data/synthetic_emdmgmt.hive
 !/tests/data/synthetic_thunderbolt.hive
+!/tests/data/synthetic_bagmru.hive

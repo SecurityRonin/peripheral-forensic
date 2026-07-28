@@ -18,6 +18,10 @@ exclude = ["/fuzz", "/.github", "/docs"]
 # Registry device sources are read via the fleet hive parser (USBSTOR / SCSI / USB
 # Enum keys). setupapi parsing remains dependency-free text handling.
 winreg-core = "0.2"
+# ShellBags (BagMRU) slot values hold Windows shell-item (ITEMIDLIST) blobs; the
+# fleet's fuzzed shellitem primitive decodes them (drive-letter volume + browsed
+# folder path). Our own crate — preferred over any third-party PIDL parser.
+shellitem = "0.2"
 # Common USB VID->vendor facts are KNOWLEDGE (forensicnomicon), not reader data.
 # Path dep during the coordinated in-flight change; switch to the registry version
 # once forensicnomicon publishes the usb_vendors release (bottom-up, ADR-0006).
