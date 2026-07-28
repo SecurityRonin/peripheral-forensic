@@ -37,9 +37,13 @@ pub struct Recon {
 /// is a volume node without a clean drive letter and contributes nothing)
 /// against the oracle's decoded drive-letter set (`oracle`).
 pub fn reconcile(ours: &[Option<char>], oracle: &[char]) -> Recon {
-    // RED stub: returns nothing so the unit tests below fail until implemented.
-    let _ = (ours, oracle);
-    Recon::default()
+    let ours: BTreeSet<char> = ours.iter().filter_map(|d| *d).collect();
+    let oracle: BTreeSet<char> = oracle.iter().copied().collect();
+    Recon {
+        confirmed: ours.intersection(&oracle).copied().collect(),
+        false_positive: ours.difference(&oracle).copied().collect(),
+        oracle_only: oracle.difference(&ours).copied().collect(),
+    }
 }
 
 // ---- unit tests for the pure reconciliation logic (always run) --------------
