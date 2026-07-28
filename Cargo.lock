@@ -84,7 +84,7 @@ version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8340c0ac2fd81daf453f19474b30c75d3b1152c5850c31b3519e20412a7f92d7"
 dependencies = [
- "forensicnomicon-core",
+ "forensicnomicon-core 1.3.0",
  "forensicnomicon-data",
 ]
 
@@ -95,12 +95,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26131e0c8a646fba012fc958151d480b3d17ddac27f3da2fa37e26a9fdde1e63"
 
 [[package]]
+name = "forensicnomicon-core"
+version = "1.4.0"
+
+[[package]]
 name = "forensicnomicon-data"
 version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7e1239a47f728cf7a88d7508f21a446960ae2e7eae41ad14a6bf7caa61548fcf"
 dependencies = [
- "forensicnomicon-core",
+ "forensicnomicon-core 1.3.0",
 ]
 
 [[package]]
@@ -192,6 +196,7 @@ dependencies = [
 name = "peripheral-core"
 version = "0.8.1"
 dependencies = [
+ "forensicnomicon-core 1.4.0",
  "winreg-core",
 ]
 

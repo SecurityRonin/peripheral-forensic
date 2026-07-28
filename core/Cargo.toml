@@ -18,6 +18,10 @@ exclude = ["/fuzz", "/.github", "/docs"]
 # Registry device sources are read via the fleet hive parser (USBSTOR / SCSI / USB
 # Enum keys). setupapi parsing remains dependency-free text handling.
 winreg-core = "0.2"
+# Common USB VID->vendor facts are KNOWLEDGE (forensicnomicon), not reader data.
+# Path dep during the coordinated in-flight change; switch to the registry version
+# once forensicnomicon publishes the usb_vendors release (bottom-up, ADR-0006).
+forensicnomicon-core = { version = "1.4", path = "../../../knowledge/forensicnomicon/crates/core" }
 
 [lints]
 workspace = true

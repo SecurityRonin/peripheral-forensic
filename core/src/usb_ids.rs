@@ -64,42 +64,9 @@ impl UsbIdDb {
     /// For full coverage, load `usb.ids` at runtime via [`parse`](Self::parse).
     #[must_use]
     pub fn common() -> Self {
-        const COMMON: &[(u16, &str)] = &[
-            (0x0781, "SanDisk Corp."),
-            (0x0951, "Kingston Technology"),
-            (
-                0x090c,
-                "Silicon Motion, Inc. - Taiwan (formerly Feiya Technology Corp.)",
-            ),
-            (0x04e8, "Samsung Electronics Co., Ltd"),
-            (0x0930, "Toshiba Corp."),
-            (0x13fe, "Phison Electronics Corp."),
-            (0x154b, "PNY"),
-            (0x18a5, "Verbatim, Ltd"),
-            (0x8564, "Transcend Information, Inc."),
-            (0x058f, "Alcor Micro Corp."),
-            (0x1b1c, "Corsair"),
-            (0x0483, "STMicroelectronics"),
-            (0x1f75, "Innostor Technology Corporation"),
-            (0x1516, "CompUSA"),
-            (0x048d, "Integrated Technology Express, Inc."),
-            (0x174c, "ASMedia Technology Inc."),
-            (
-                0x152d,
-                "JMicron Technology Corp. / JMicron USA Technology Corp.",
-            ),
-            (0x14cd, "Super Top"),
-            (0x0bda, "Realtek Semiconductor Corp."),
-            (0x05dc, "Lexar Media, Inc."),
-            (0x0409, "NEC Corp."),
-            (0x1058, "Western Digital Technologies, Inc."),
-            (0x059f, "LaCie, Ltd"),
-            (0x04b4, "Cypress Semiconductor Corp."),
-            (0x067b, "Prolific Technology, Inc."),
-        ];
         let mut db = Self::default();
-        for &(vid, name) in COMMON {
-            db.vendors.insert(vid, name.to_owned());
+        for v in forensicnomicon_core::usb_vendors::COMMON_USB_VENDORS {
+            db.vendors.insert(v.vid, v.name.to_owned());
         }
         db
     }
