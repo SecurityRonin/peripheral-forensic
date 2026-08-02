@@ -169,4 +169,38 @@ C 00  (Defined at Interface level)\n\
         assert_eq!(db.vendor_name(0x0781), Some("SanDisk Corp."));
         assert!(db.vendor_count() >= 20);
     }
+
+    #[test]
+    fn interface_lines_are_skipped_not_read_as_products() {
+        // Two leading tabs is an interface line inside a product. Reading it as
+        // a product would register 0x0781:0x0000 "Mass Storage" — a device that
+        // does not exist. Real usb.ids nests these under most storage devices.
+        let db = UsbIdDb::parse("0781  SanDisk Corp.\n\t5583  Ultra Fit\n\t\t00  Mass Storage\n");
+        assert_eq!(db.product_name(0x0781, 0x5583), Some("Ultra Fit"));
+        assert_eq!(db.product_name(0x0781, 0x0000), None);
+    }
+
+    #[test]
+    fn four_hex_chars_alone_do_not_make_an_id_line() {
+        // Both lines open with four valid hex characters and are still rejected,
+        // so they exercise the separator check rather than the hex parse — the
+        // section headers in FIXTURE (`C 00`) fail earlier, at the hex step.
+        let db = UsbIdDb::parse("0781 SanDisk Corp.\n0951\tKingston\n");
+        assert_eq!(db.vendor_count(), 0);
+        assert!(db.is_empty());
+        assert_eq!(db.vendor_name(0x0781), None);
+    }
+
+    #[test]
+    fn a_wider_separator_is_accepted_and_keeps_the_surplus_in_the_name() {
+        // Current behaviour, asserted so a change is visible rather than silent.
+        // `parse_id_line`'s doc says "exactly two spaces", but the check reads
+        // only positions 4..6, so a third space falls into the name and survives
+        // — `trim_end` does not touch a leading one. usb.ids uses exactly two
+        // spaces throughout, so no real line reaches this; if the name is ever
+        // trimmed at the front, this assertion is where it shows up.
+        let db = UsbIdDb::parse("0abc   Three Spaces\n");
+        assert_eq!(db.vendor_count(), 1);
+        assert_eq!(db.vendor_name(0x0abc), Some(" Three Spaces"));
+    }
 }
