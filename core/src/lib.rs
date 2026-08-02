@@ -340,4 +340,64 @@ mod tests {
         );
         assert_eq!(Stamp::inferred(10).confidence, Confidence::Inferred);
     }
+
+    /// A connection carrying only the ids the name lookups read. Every other
+    /// field is empty on purpose: these two methods must not depend on them.
+    fn connection(vid: Option<u16>, pid: Option<u16>) -> DeviceConnection {
+        DeviceConnection {
+            bus: Bus::Usb,
+            device_class_guid: None,
+            vid,
+            pid,
+            device_serial: None,
+            serial_is_os_generated: false,
+            friendly_name: None,
+            device_instance_id: String::new(),
+            first_install: None,
+            last_install: None,
+            last_arrival: None,
+            last_removal: None,
+            parent_id_prefix: None,
+            volume_guid: None,
+            drive_letter: None,
+            volume_serial: None,
+            disk_signature: None,
+            dma_capable: false,
+            mitre: Vec::new(),
+            source: Provenance {
+                file: String::new(),
+                line: 0,
+                key_path: None,
+            },
+        }
+    }
+
+    const IDS: &str = "0781  SanDisk Corp.\n\t5583  Ultra Fit\n";
+
+    #[test]
+    fn vendor_name_resolves_a_known_vid_and_stays_none_otherwise() {
+        let db = crate::usb_ids::UsbIdDb::parse(IDS);
+        assert_eq!(
+            connection(Some(0x0781), None).vendor_name(&db),
+            Some("SanDisk Corp.")
+        );
+        // Unknown vid: the lookup misses rather than inventing a name.
+        assert_eq!(connection(Some(0xFFFF), None).vendor_name(&db), None);
+        // Absent vid: nothing to look up.
+        assert_eq!(connection(None, None).vendor_name(&db), None);
+    }
+
+    #[test]
+    fn product_name_needs_both_ids() {
+        let db = crate::usb_ids::UsbIdDb::parse(IDS);
+        assert_eq!(
+            connection(Some(0x0781), Some(0x5583)).product_name(&db),
+            Some("Ultra Fit")
+        );
+        // Each half alone falls to the `_ => None` arm: a pid without its vid is
+        // not a product key, and a vid alone does not name a product.
+        assert_eq!(connection(Some(0x0781), None).product_name(&db), None);
+        assert_eq!(connection(None, Some(0x5583)).product_name(&db), None);
+        assert_eq!(connection(None, None).product_name(&db), None);
+    }
 }
